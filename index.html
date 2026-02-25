@@ -19,7 +19,7 @@
     <div id="app" class="max-w-md mx-auto min-h-screen p-4 flex flex-col justify-center">
         <div id="loader" class="text-center">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"></div>
-            <p class="text-slate-500">Sistem Hazırlanıyor...</p>
+            <p id="loaderText" class="text-slate-500">Sistem Hazırlanıyor...</p>
         </div>
     </div>
 
@@ -31,7 +31,8 @@
             signInWithEmailAndPassword, 
             onAuthStateChanged, 
             signOut,
-            sendEmailVerification
+            sendEmailVerification,
+            applyActionCode
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -48,7 +49,6 @@
             serverTimestamp 
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        // Firebase yapılandırman
         const firebaseConfig = {
             apiKey: "AIzaSyBzvyfRRz49w76fpNq919p-EgOIaeZhB4E",
             authDomain: "detseksistemi.firebaseapp.com",
@@ -67,10 +67,29 @@
         let userData = null;
         let currentView = 'login';
 
-        // GitHub Pages adresine göre doğrulama ayarları
         const actionCodeSettings = {
             url: "https://ahmetresmiii.github.io/webprojem/",
             handleCodeInApp: true
+        };
+
+        // URL'deki Firebase işlem kodlarını (doğrulama gibi) kontrol et
+        const handleUrlActions = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            const actionCode = urlParams.get('oobCode');
+
+            if (mode === 'verifyEmail' && actionCode) {
+                const loaderText = document.getElementById('loaderText');
+                if(loaderText) loaderText.innerText = "E-posta doğrulanıyor...";
+                try {
+                    await applyActionCode(auth, actionCode);
+                    alert("E-posta adresiniz başarıyla doğrulandı! Şimdi giriş yapabilirsiniz.");
+                    // Parametreleri temizle ve ana sayfaya dön
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (error) {
+                    alert("Doğrulama hatası: " + error.message);
+                }
+            }
         };
 
         const render = () => {
@@ -231,7 +250,7 @@
                         <span class="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">AÇIK</span>
                     </div>`;
                 });
-            });
+            }, (err) => console.error("Ticket list error:", err));
         }
 
         function loadMessages() {
@@ -248,8 +267,11 @@
                     </div>`;
                 });
                 box.scrollTop = box.scrollHeight;
-            });
+            }, (err) => console.error("Message load error:", err));
         }
+
+        // Başlangıçta URL aksiyonlarını kontrol et
+        handleUrlActions();
 
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
