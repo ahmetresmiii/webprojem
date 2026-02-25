@@ -36,7 +36,8 @@
             signOut,
             sendEmailVerification,
             sendPasswordResetEmail,
-            applyActionCode
+            applyActionCode,
+            confirmPasswordReset
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -73,8 +74,9 @@
         let currentView = 'login';
         window.tid = null;
 
+        // URL Settings updated for proper redirection
         const actionCodeSettings = {
-            url: "https://ahmetresmiii.github.io/webprojem/", // Sıfırlama sonrası dönülecek adres
+            url: window.location.origin + window.location.pathname, 
             handleCodeInApp: true
         };
 
@@ -83,12 +85,23 @@
             const mode = urlParams.get('mode');
             const actionCode = urlParams.get('oobCode');
 
-            if (actionCode && mode === 'verifyEmail') {
-                try {
-                    await applyActionCode(auth, actionCode);
-                    alert("E-posta onaylandı! Giriş yapabilirsiniz.");
-                } catch (e) { alert("Onay hatası."); }
-                window.history.replaceState({}, document.title, window.location.pathname);
+            if (actionCode) {
+                if (mode === 'verifyEmail') {
+                    try {
+                        await applyActionCode(auth, actionCode);
+                        alert("E-posta onaylandı! Giriş yapabilirsiniz.");
+                    } catch (e) { alert("Onay hatası: " + e.message); }
+                } else if (mode === 'resetPassword') {
+                    const newPassword = prompt("Lütfen yeni şifrenizi giriniz:");
+                    if (newPassword) {
+                        try {
+                            await confirmPasswordReset(auth, actionCode, newPassword);
+                            alert("Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.");
+                        } catch (e) { alert("Şifre sıfırlama hatası: " + e.message); }
+                    }
+                }
+                // Clean URL parameters
+                window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
             }
         };
 
@@ -104,7 +117,7 @@
                 case 'login': return `
                     <div class="glass p-8 rounded-3xl shadow-xl">
                         <h2 class="text-2xl font-bold mb-6 text-center text-indigo-400">Giriş Yap</h2>
-                        <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500">
+                        <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500 text-white">
                         <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500 text-white">
                         <button id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold transition-all">Giriş</button>
                         <div class="mt-6 flex justify-between text-[10px] text-slate-500">
@@ -128,9 +141,9 @@
                 case 'register': return `
                     <div class="glass p-8 rounded-3xl shadow-xl">
                         <h2 class="text-2xl font-bold mb-6 text-center text-emerald-400">Hesap Oluştur</h2>
-                        <input id="regName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
-                        <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
-                        <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10">
+                        <input id="regName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white">
+                        <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white">
+                        <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 text-white">
                         <button id="btnRegister" class="w-full bg-emerald-600 py-4 rounded-xl font-bold transition-all">Kaydı Tamamla</button>
                         <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Girişe Dön</button>
                     </div>`;
@@ -181,7 +194,7 @@
                         </div>
                         <div id="msgBox" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
                         <div class="p-4 bg-white/5 flex gap-2">
-                            <input id="chatInput" type="text" placeholder="Mesaj..." class="flex-1 bg-white/10 p-4 rounded-2xl outline-none text-sm">
+                            <input id="chatInput" type="text" placeholder="Mesaj..." class="flex-1 bg-white/10 p-4 rounded-2xl outline-none text-sm text-white">
                             <button id="btnSend" class="bg-indigo-600 w-12 h-12 rounded-2xl"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>`;
@@ -209,11 +222,9 @@
             if(!email || email.trim() === "") return;
             
             try {
-                // Settings parametresi eklenerek linkin çalışması sağlandı
                 await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
-                alert("Şifre sıfırlama talimatları e-posta adresinize gönderildi. Lütfen spam kutunuzu da kontrol edin.");
+                alert("Şifre sıfırlama talimatları e-posta adresinize gönderildi.");
             } catch(e) { 
-                console.error("Şifre Sıfırlama Hatası:", e.code);
                 if(e.code === 'auth/user-not-found') alert("Bu e-posta adresine ait bir kullanıcı bulunamadı.");
                 else alert("Hata oluştu: " + e.message); 
             }
@@ -237,9 +248,8 @@
             try { 
                 await signInWithEmailAndPassword(auth, email, pass); 
             } catch(e) { 
-                console.error("Giriş Hatası:", e.code);
                 if (e.code === 'auth/invalid-credential') {
-                    alert("Giriş Başarısız: E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.");
+                    alert("E-posta veya şifre hatalı.");
                 } else {
                     alert("Bir hata oluştu: " + e.message);
                 }
@@ -267,7 +277,7 @@
             if(!name || !email || !reason) return alert("Tüm alanları doldurun.");
             try {
                 await addDoc(collection(db, "adminApplies"), { name, email, reason, status: 'pending', createdAt: serverTimestamp() });
-                alert("Başvurunuz başarıyla alındı. İnceleme sonrası e-posta ile bilgilendirileceksiniz.");
+                alert("Başvurunuz başarıyla alındı.");
                 window.nav('login');
             } catch(e) { alert(e.message); }
         }
@@ -279,7 +289,6 @@
             });
             window.tid = tRef.id;
             window.chatUserName = userData?.name;
-            // İlk Mesaj (Sistem Uyarısı - Talep Ettiğin Format)
             await addDoc(collection(db, "tickets", tRef.id, "messages"), {
                 text: `Sistem: Merhaba ${userData?.name}, hesapınızı unutmayın bıldırılmlerı açtığınızdan emın olun sıze adınız ıle gerı donus yapaçağız.`,
                 senderId: 'system', createdAt: serverTimestamp()
@@ -364,7 +373,7 @@
         }
 
         window.processApply = async (id, status) => {
-            if(!confirm("Bu işlem dökümanı silecektir. Devam etmek istiyor musunuz?")) return;
+            if(!confirm("Bu işlemi dökümanı silecektir. Devam etmek istiyor musunuz?")) return;
             try {
                 if(status === 'admin') {
                     const apRef = doc(db, "adminApplies", id);
@@ -386,12 +395,18 @@
                     if(!auth.currentUser.emailVerified) {
                         currentView = 'verifyEmail';
                     } else {
-                        const uDoc = await getDoc(doc(db, "users", user.uid));
-                        userData = uDoc.exists() ? uDoc.data() : null;
+                        // Realtime listener for roles to reflect Firestore changes immediately
+                        onSnapshot(doc(db, "users", user.uid), (uDoc) => {
+                            if (uDoc.exists()) {
+                                userData = uDoc.data();
+                                render();
+                            }
+                        });
                         currentView = 'dashboard';
                     }
                 } else {
                     currentView = 'login';
+                    userData = null;
                 }
                 if (loader) loader.classList.add('hidden');
                 render();
