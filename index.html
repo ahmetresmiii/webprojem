@@ -2,19 +2,13 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Destek Paneli | Canlı Mesajlaşma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            overflow-x: hidden; 
-            -webkit-font-smoothing: antialiased;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
         .glass { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); }
         .chat-container::-webkit-scrollbar { width: 4px; }
         .chat-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -68,7 +62,7 @@
                                 <i class="fas fa-headset text-5xl text-yellow-300"></i>
                             </div>
                             <h1 class="text-3xl font-extrabold mb-2 text-white">Destek Sistemi</h1>
-                            <p class="text-white/70 mb-8">Hızlı ve renkli çözüm merkezi!</p>
+                            <p class="text-white/70 mb-8">Hızlı çözüm merkezi!</p>
                             <div class="grid gap-4">
                                 <button id="btn-new" class="bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-4 rounded-2xl transition-all shadow-lg">Yeni Destek Talebi Aç</button>
                                 <button id="btn-query" class="bg-indigo-400 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg">Taleplerimi Sorgula</button>
@@ -85,7 +79,7 @@
                             <h2 class="text-2xl font-bold mb-6">Yeni Talep</h2>
                             <div class="space-y-4">
                                 <label class="block text-sm text-white/70 ml-1">4 Haneli PIN Belirleyin</label>
-                                <input id="pinInput" type="password" maxlength="4" placeholder="****" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center text-2xl tracking-[0.5em] focus:border-yellow-400">
+                                <input id="pinInput" type="text" maxlength="4" placeholder="****" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center text-2xl tracking-[0.5em] focus:border-yellow-400">
                                 <button id="btn-create-exec" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg">Talebi Başlat</button>
                             </div>
                         </div>`;
@@ -97,7 +91,7 @@
                             <h2 class="text-2xl font-bold mb-6">Sorgula</h2>
                             <div class="space-y-4">
                                 <input id="codeInput" type="text" placeholder="6 Haneli Talep Kodu" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center">
-                                <input id="pinQueryInput" type="password" maxlength="4" placeholder="4 Haneli PIN" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center">
+                                <input id="pinQueryInput" type="text" maxlength="4" placeholder="4 Haneli PIN" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center">
                                 <button id="btn-query-exec" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg">Sorgula</button>
                             </div>
                         </div>`;
@@ -154,7 +148,7 @@
 
             appDiv.appendChild(content);
             bindEvents();
-            if(state.view === 'chat') listenMessages(state.currentTicket.id);
+            if(state.view === 'chat' && state.currentTicket) listenMessages(state.currentTicket.id);
             if(state.view === 'adminPanel') listenAllTickets();
         };
 
@@ -191,39 +185,53 @@
         };
 
         async function handleCreateTicket() {
-            const pin = document.getElementById('pinInput').value;
+            const pin = document.getElementById('pinInput').value.toString().trim();
             if (pin.length !== 4) return alert("PIN 4 haneli olmalıdır!");
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             try {
                 const docRef = await addDoc(collection(db, "tickets"), {
-                    code, pin, status: 'waiting',
+                    code: code,
+                    pin: pin,
+                    status: 'waiting',
                     messageCount: 1,
                     createdAt: serverTimestamp(),
                     lastUpdate: serverTimestamp()
                 });
                 await addDoc(collection(db, "tickets", docRef.id, "messages"), {
-                    text: "Merhaba! Talebiniz alındı. En kısa sürede yanıtlayacağız. Şifrenizi unutmayın!",
+                    text: "Merhaba! Talebiniz alındı. PIN kodunuzu unutmayın: " + pin,
                     sender: 'system', createdAt: serverTimestamp()
                 });
-                state.currentTicket = { id: docRef.id, code };
+                state.currentTicket = { id: docRef.id, code: code };
                 state.view = 'chat';
                 render();
             } catch (e) { alert("Hata: " + e.message); }
         }
 
         async function handleQueryTicket() {
-            const code = document.getElementById('codeInput').value.trim();
-            const pin = document.getElementById('pinQueryInput').value.trim();
+            const code = document.getElementById('codeInput').value.toString().trim();
+            const pin = document.getElementById('pinQueryInput').value.toString().trim();
+            
             if (!code || !pin) return alert("Bilgileri doldurun!");
-            const q = query(collection(db, "tickets"), where("code", "==", code), where("pin", "==", pin));
+            
+            const q = query(collection(db, "tickets"), where("code", "==", code));
             const snap = await getDocs(q);
+            
             if (!snap.empty) {
                 const tDoc = snap.docs[0];
-                if(tDoc.data().status === 'deleted') return alert("Bu talep arşivlenmiş veya silinmiş.");
-                state.currentTicket = { id: tDoc.id, code: tDoc.data().code };
-                state.view = 'chat';
-                render();
-            } else { alert("Hatalı Kod veya PIN!"); }
+                const data = tDoc.data();
+                
+                // PIN kontrolünü hem string hem number ihtimaline karşı yapıyoruz
+                if (data.pin.toString() === pin.toString()) {
+                    if(data.status === 'deleted') return alert("Bu talep arşive kaldırılmış.");
+                    state.currentTicket = { id: tDoc.id, code: data.code };
+                    state.view = 'chat';
+                    render();
+                } else {
+                    alert("Hatalı PIN!");
+                }
+            } else { 
+                alert("Böyle bir talep kodu bulunamadı!"); 
+            }
         }
 
         function handleAdminLogin() {
@@ -295,19 +303,15 @@
                     const t = d.data();
                     const id = d.id;
                     
-                    // OTOMATİK SİLME: Kullanıcı hiçbir şey yazmamışsa (sadece sistem mesajı varsa)
+                    // OTOMATİK SİLME: Kullanıcı hiçbir şey yazmamışsa
                     if(t.messageCount <= 1 && t.status !== 'deleted') {
                         await deleteDoc(doc(db, "tickets", id));
                         continue; 
                     }
 
-                    if(state.adminFilter === 'deleted') {
-                        if(t.status !== 'deleted') continue;
-                    } else if(state.adminFilter === 'waiting') {
-                        if(t.status !== 'waiting') continue;
-                    } else {
-                        if(t.status === 'deleted') continue;
-                    }
+                    if(state.adminFilter === 'deleted' && t.status !== 'deleted') continue;
+                    if(state.adminFilter === 'waiting' && t.status !== 'waiting') continue;
+                    if(state.adminFilter === 'all' && t.status === 'deleted') continue;
 
                     const div = document.createElement('div');
                     div.className = "bg-white/10 p-4 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer";
@@ -316,18 +320,16 @@
                         <div class="flex justify-between items-start mb-2">
                             <span class="font-bold text-yellow-300">#${t.code}</span>
                             <span class="text-[10px] px-2 py-1 rounded ${t.status === 'waiting' ? 'bg-red-500' : (t.status === 'deleted' ? 'bg-gray-600' : 'bg-emerald-500')} font-bold">
-                                ${t.status === 'waiting' ? 'BEKLEYEN' : (t.status === 'deleted' ? 'SİLİNDİ/ARŞİV' : 'OKUNDU')}
+                                ${t.status === 'waiting' ? 'BEKLEYEN' : (t.status === 'deleted' ? 'ARŞİV' : 'OKUNDU')}
                             </span>
                         </div>
                         <div class="flex gap-2">
                             <button class="cp-notify-btn flex-1 bg-indigo-500 text-[10px] py-2 rounded-lg font-bold">Kopyala</button>
-                            ${t.status !== 'deleted' ? `<button class="del-ticket-btn bg-rose-600 px-3 py-2 rounded-lg text-xs"><i class="fas fa-trash"></i></button>` : ''}
+                            <button class="del-ticket-btn bg-rose-600 px-3 py-2 rounded-lg text-xs"><i class="fas fa-trash"></i></button>
                         </div>`;
                     
                     div.querySelector('.cp-notify-btn').onclick = (e) => { e.stopPropagation(); window.cpNotify(t.code); };
-                    const delBtn = div.querySelector('.del-ticket-btn');
-                    if(delBtn) delBtn.onclick = (e) => { e.stopPropagation(); window.delT(id); };
-                    
+                    div.querySelector('.del-ticket-btn').onclick = (e) => { e.stopPropagation(); window.delT(id, t.status); };
                     list.appendChild(div);
                 }
             });
@@ -340,17 +342,13 @@
             document.body.removeChild(el); alert("Kopyalandı!");
         };
 
-        window.delT = async (id) => { 
-            if(confirm("Talebi arşive taşımak istiyor musunuz? (Tamamen silmek için tekrar silin)")) {
+        window.delT = async (id, currentStatus) => { 
+            if(confirm(currentStatus === 'deleted' ? "Bu talep TAMAMEN silinsin mi?" : "Talep arşive taşınsın mı?")) {
                 try {
-                    const tRef = doc(db, "tickets", id);
-                    const tSnap = await getDocs(collection(db, "tickets", id, "messages"));
-                    const currentStatus = (await getDocs(query(collection(db, "tickets"), where("__name__", "==", id)))).docs[0].data().status;
-                    
                     if(currentStatus === 'deleted') {
-                        await deleteDoc(tRef);
+                        await deleteDoc(doc(db, "tickets", id));
                     } else {
-                        await updateDoc(tRef, { status: 'deleted' });
+                        await updateDoc(doc(db, "tickets", id), { status: 'deleted' });
                     }
                 } catch(e) { alert("Hata: " + e.message); }
             }
@@ -362,7 +360,7 @@
                     await deleteDoc(doc(db, "tickets", tid, "messages", mid));
                     const tSnap = await getDocs(collection(db, "tickets", tid, "messages"));
                     await updateDoc(doc(db, "tickets", tid), { messageCount: tSnap.size });
-                } catch(e) { alert("Hata: Mesaj silinemedi."); }
+                } catch(e) { alert("Hata!"); }
             }
         };
 
