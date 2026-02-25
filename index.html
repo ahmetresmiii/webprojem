@@ -31,7 +31,8 @@
             signInWithEmailAndPassword, 
             onAuthStateChanged, 
             signOut,
-            sendEmailVerification 
+            sendEmailVerification,
+            applyActionCode
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -65,6 +66,11 @@
         let currentUser = null;
         let userData = null;
         let currentView = 'login';
+
+        const actionCodeSettings = {
+            url: window.location.href,
+            handleCodeInApp: true
+        };
 
         const render = () => {
             appDiv.innerHTML = `<div class="animate-fade w-full">${getTemplate()}</div>`;
@@ -103,21 +109,10 @@
                             <i class="fas fa-envelope-open-text text-2xl"></i>
                         </div>
                         <h2 class="text-xl font-bold mb-2">E-posta Doğrulanmadı</h2>
-                        <p class="text-slate-400 text-sm mb-6">Lütfen <b>${currentUser?.email}</b> adresine gönderdiğimiz bağlantıya tıklayın.</p>
+                        <p class="text-slate-400 text-sm mb-6">Lütfen <b>${currentUser?.email}</b> adresindeki doğrulama linkine tıklayın.</p>
                         <button onclick="location.reload()" class="w-full bg-white/10 hover:bg-white/20 py-3 rounded-xl mb-3 text-sm font-semibold transition-all">Doğruladım, Yenile</button>
-                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline">E-postayı tekrar gönder</button>
+                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline block mx-auto">E-postayı tekrar gönder</button>
                         <button id="btnLogout" class="block w-full mt-8 text-xs text-red-400/50">Çıkış Yap</button>
-                    </div>`;
-
-                case 'adminApply': return `
-                    <div class="glass p-8 rounded-3xl shadow-xl border-purple-500/20">
-                        <h2 class="text-xl font-bold mb-2 text-purple-400">Yönetici Başvurusu</h2>
-                        <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-wider">Başvurunuz doğrudan Ahmet Bey'e iletilecektir.</p>
-                        <input id="applyName" type="text" placeholder="Adınız Soyadınız" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
-                        <input id="applyEmail" type="email" placeholder="E-posta Adresiniz" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
-                        <textarea id="applyNote" placeholder="Neden admin olmak istiyorsunuz?" class="w-full bg-white/5 p-4 rounded-xl mb-6 h-24 outline-none border border-white/10"></textarea>
-                        <button id="btnSubmitApply" class="w-full bg-purple-600 py-4 rounded-xl font-bold">Başvuruyu Gönder</button>
-                        <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Geri Dön</button>
                     </div>`;
 
                 case 'dashboard': return `
@@ -147,7 +142,6 @@
                         <div class="p-4 border-b border-white/10 flex justify-between items-center">
                             <button onclick="window.nav('dashboard')" class="text-slate-500"><i class="fas fa-chevron-left"></i></button>
                             <span class="text-xs font-bold text-indigo-400">TALEP #${window.tid?.slice(-4)}</span>
-                            <div class="w-4"></div>
                         </div>
                         <div id="msgBox" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
                         <div class="p-4 bg-white/5 flex gap-2">
@@ -177,7 +171,7 @@
         window.resendEmail = async () => {
             if(!auth.currentUser) return;
             try {
-                await sendEmailVerification(auth.currentUser);
+                await sendEmailVerification(auth.currentUser, actionCodeSettings);
                 alert("Doğrulama maili tekrar gönderildi.");
             } catch(e) { alert("Hata: " + e.message); }
         };
@@ -204,19 +198,17 @@
             
             try {
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
-                // 1. Mail doğrulama gönder
-                await sendEmailVerification(res.user);
-                // 2. Firestore'a kullanıcıyı kaydet
+                await sendEmailVerification(res.user, actionCodeSettings);
                 await setDoc(doc(db, "users", res.user.uid), { 
                     name, email, role: 'user', createdAt: serverTimestamp() 
                 });
-                alert("Kayıt başarılı! Lütfen mail kutunuzu kontrol edip hesabınızı doğrulayın.");
-                signOut(auth); // Doğrulanana kadar dışarı atalım
+                alert("Kayıt başarılı! Mailinizi doğruladıktan sonra giriş yapabilirsiniz.");
+                signOut(auth);
                 window.nav('login');
             } catch(e) { 
-                alert("Kayıt Hatası: " + e.message); 
                 btn.disabled = false;
                 btn.innerText = "Kaydı Tamamla";
+                alert(e.code === 'auth/email-already-in-use' ? "Bu mail zaten kayıtlı." : "Hata: " + e.message);
             }
         }
 
@@ -312,8 +304,8 @@
             const loader = document.getElementById('loader');
             
             if(user) {
-                // E-posta doğrulama kontrolü
-                if(!user.emailVerified) {
+                await user.reload(); // Refresh verification status
+                if(!auth.currentUser.emailVerified) {
                     currentView = 'verifyEmail';
                 } else {
                     const uDoc = await getDoc(doc(db, "users", user.uid));
