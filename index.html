@@ -74,7 +74,7 @@
         window.tid = null;
 
         const actionCodeSettings = {
-            url: "https://ahmetresmiii.github.io/webprojem/",
+            url: "https://ahmetresmiii.github.io/webprojem/", // Sıfırlama sonrası dönülecek adres
             handleCodeInApp: true
         };
 
@@ -205,12 +205,18 @@
         window.nav = (v) => { currentView = v; render(); };
 
         window.forgotPass = async () => {
-            const email = prompt("Sıfırlama linki için e-posta adresinizi girin:");
-            if(!email) return;
+            const email = prompt("Şifre sıfırlama linki için kayıtlı e-posta adresinizi girin:");
+            if(!email || email.trim() === "") return;
+            
             try {
-                await sendPasswordResetEmail(auth, email);
-                alert("Şifre sıfırlama linki gönderildi.");
-            } catch(e) { alert("Hata: " + e.message); }
+                // Settings parametresi eklenerek linkin çalışması sağlandı
+                await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
+                alert("Şifre sıfırlama talimatları e-posta adresinize gönderildi. Lütfen spam kutunuzu da kontrol edin.");
+            } catch(e) { 
+                console.error("Şifre Sıfırlama Hatası:", e.code);
+                if(e.code === 'auth/user-not-found') alert("Bu e-posta adresine ait bir kullanıcı bulunamadı.");
+                else alert("Hata oluştu: " + e.message); 
+            }
         };
 
         window.copyNotify = () => {
