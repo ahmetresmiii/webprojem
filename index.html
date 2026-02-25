@@ -202,7 +202,7 @@
                     lastUpdate: serverTimestamp()
                 });
                 await addDoc(collection(db, "tickets", docRef.id, "messages"), {
-                    text: "Merhaba! Talebiniz alındı. En kısa sürede yanıtlayacağız. Şifrenizi unutmayın!",
+                    text: "Merhaba! Talebiniz alındı. En kısa sürede yanıtlayacağız. Şifrenizi unutmayın ve bildirimleri açtığınızdan emin olun daha sonra bu bilgiler ile giriş yapacaksınız!",
                     sender: 'system', createdAt: serverTimestamp()
                 });
                 state.currentTicket = { id: docRef.id, code };
