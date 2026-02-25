@@ -198,7 +198,7 @@
                     lastUpdate: serverTimestamp()
                 });
                 await addDoc(collection(db, "tickets", docRef.id, "messages"), {
-                    text: "Merhaba! Talebiniz alındı. PIN kodunuzu unutmayın: " + pin,
+                    text: "Merhaba! Talebiniz alındı.talep kodunuzu ve PIN kodunuzu unutmayın daha sonra bildirim gödereçeğiz mesaj yazıp çıkabilrsiniz.PİNİNİZ: " + pin,
                     sender: 'system', createdAt: serverTimestamp()
                 });
                 state.currentTicket = { id: docRef.id, code: code };
@@ -222,7 +222,7 @@
                 
                 // PIN kontrolünü hem string hem number ihtimaline karşı yapıyoruz
                 if (data.pin.toString() === pin.toString()) {
-                    if(data.status === 'deleted') return alert("Bu talep arşive kaldırılmış.");
+                    if(data.status === 'deleted') return alert("Bu talep arşive kaldırılmış bu kodunuzla yeni talep açabilirsiniz yeni talepde önceki kodunuzu belirtiniz.");
                     state.currentTicket = { id: tDoc.id, code: data.code };
                     state.view = 'chat';
                     render();
