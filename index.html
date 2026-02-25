@@ -31,8 +31,7 @@
             signInWithEmailAndPassword, 
             onAuthStateChanged, 
             signOut,
-            sendEmailVerification,
-            applyActionCode
+            sendEmailVerification
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -49,6 +48,7 @@
             serverTimestamp 
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+        // Firebase yapılandırman
         const firebaseConfig = {
             apiKey: "AIzaSyBzvyfRRz49w76fpNq919p-EgOIaeZhB4E",
             authDomain: "detseksistemi.firebaseapp.com",
@@ -67,8 +67,9 @@
         let userData = null;
         let currentView = 'login';
 
+        // GitHub Pages adresine göre doğrulama ayarları
         const actionCodeSettings = {
-            url: window.location.href,
+            url: "https://ahmetresmiii.github.io/webprojem/",
             handleCodeInApp: true
         };
 
@@ -109,9 +110,9 @@
                             <i class="fas fa-envelope-open-text text-2xl"></i>
                         </div>
                         <h2 class="text-xl font-bold mb-2">E-posta Doğrulanmadı</h2>
-                        <p class="text-slate-400 text-sm mb-6">Lütfen <b>${currentUser?.email}</b> adresindeki doğrulama linkine tıklayın.</p>
+                        <p class="text-slate-400 text-sm mb-6">Lütfen <b>${currentUser?.email}</b> adresindeki linke tıklayarak hesabınızı onaylayın.</p>
                         <button onclick="location.reload()" class="w-full bg-white/10 hover:bg-white/20 py-3 rounded-xl mb-3 text-sm font-semibold transition-all">Doğruladım, Yenile</button>
-                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline block mx-auto">E-postayı tekrar gönder</button>
+                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline block mx-auto">Yeni link gönder</button>
                         <button id="btnLogout" class="block w-full mt-8 text-xs text-red-400/50">Çıkış Yap</button>
                     </div>`;
 
@@ -124,18 +125,7 @@
                         <button id="btnLogout" class="text-slate-500 hover:text-red-400"><i class="fas fa-power-off"></i></button>
                     </div>
                     <button id="btnNewTicket" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold mb-6">+ Yeni Destek Talebi</button>
-                    <div id="ticketList" class="space-y-3"></div>
-                    ${userData?.role === 'admin' ? `
-                        <button onclick="window.nav('adminPanel')" class="mt-10 w-full border border-yellow-500/30 p-4 rounded-2xl text-yellow-500 text-sm font-bold">
-                            <i class="fas fa-shield-alt mr-2"></i> Yönetici Paneline Git
-                        </button>` : ''}`;
-
-                case 'adminPanel': return `
-                    <div class="flex items-center gap-4 mb-8">
-                        <button onclick="window.nav('dashboard')" class="text-slate-500"><i class="fas fa-arrow-left"></i></button>
-                        <h1 class="font-bold">Yönetim Merkezi</h1>
-                    </div>
-                    <div id="applyList" class="space-y-2"></div>`;
+                    <div id="ticketList" class="space-y-3"></div>`;
 
                 case 'chat': return `
                     <div class="glass rounded-3xl flex flex-col h-[85vh]">
@@ -159,11 +149,9 @@
             if(el('btnLogout')) el('btnLogout').onclick = () => signOut(auth);
             if(el('btnNewTicket')) el('btnNewTicket').onclick = handleNewTicket;
             if(el('btnSend')) el('btnSend').onclick = handleSend;
-            if(el('btnSubmitApply')) el('btnSubmitApply').onclick = handleSubmitApply;
             
             if(currentView === 'dashboard') loadTickets();
             if(currentView === 'chat') loadMessages();
-            if(currentView === 'adminPanel') loadAdminData();
         };
 
         window.nav = (v) => { currentView = v; render(); };
@@ -202,7 +190,7 @@
                 await setDoc(doc(db, "users", res.user.uid), { 
                     name, email, role: 'user', createdAt: serverTimestamp() 
                 });
-                alert("Kayıt başarılı! Mailinizi doğruladıktan sonra giriş yapabilirsiniz.");
+                alert("Kayıt başarılı! Mailinizi doğruladıktan sonra panele erişebilirsiniz.");
                 signOut(auth);
                 window.nav('login');
             } catch(e) { 
@@ -210,21 +198,6 @@
                 btn.innerText = "Kaydı Tamamla";
                 alert(e.code === 'auth/email-already-in-use' ? "Bu mail zaten kayıtlı." : "Hata: " + e.message);
             }
-        }
-
-        async function handleSubmitApply() {
-            const name = document.getElementById('applyName').value;
-            const email = document.getElementById('applyEmail').value;
-            const note = document.getElementById('applyNote').value;
-            if(!name || !email) return alert("Zorunlu alanları doldurun.");
-            try {
-                await addDoc(collection(db, "admin_applications"), { 
-                    name, email, reason: note, status: 'pending', 
-                    targetAdmin: "ahmetmesrurresmi0@gmail.com", createdAt: serverTimestamp() 
-                });
-                alert("Başvuru gönderildi.");
-                window.nav('login');
-            } catch(e) { alert("Hata: " + e.message); }
         }
 
         async function handleNewTicket() {
@@ -278,33 +251,12 @@
             });
         }
 
-        function loadAdminData() {
-            onSnapshot(collection(db, "admin_applications"), (snap) => {
-                const list = document.getElementById('applyList');
-                if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="italic text-xs text-slate-500">Bekleyen yok.</p>' : '';
-                snap.forEach(d => {
-                    const a = d.data();
-                    if(a.status !== 'pending') return;
-                    list.innerHTML += `<div class="bg-white/5 p-3 rounded-xl flex justify-between items-center text-xs">
-                        <div><p class="font-bold">${a.name}</p><p class="text-slate-500">${a.email}</p></div>
-                        <button onclick="window.approveAdmin('${d.id}', '${a.email}')" class="bg-emerald-600 px-3 py-1 rounded-lg">Onayla</button>
-                    </div>`;
-                });
-            });
-        }
-
-        window.approveAdmin = async (docId, email) => {
-            await updateDoc(doc(db, "admin_applications", docId), { status: 'approved' });
-            alert(email + " onaylandı.");
-        };
-
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             const loader = document.getElementById('loader');
             
             if(user) {
-                await user.reload(); // Refresh verification status
+                await user.reload(); 
                 if(!auth.currentUser.emailVerified) {
                     currentView = 'verifyEmail';
                 } else {
