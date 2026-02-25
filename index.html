@@ -67,7 +67,7 @@
         let userData = null;
         let currentView = 'login';
 
-        // GitHub Pages tam yolu
+        // GitHub Pages tam yolu - Firebase'e bu adrese geri dönmesi gerektiğini söylüyoruz
         const actionCodeSettings = {
             url: "https://ahmetresmiii.github.io/webprojem/",
             handleCodeInApp: true
@@ -80,18 +80,21 @@
             const actionCode = urlParams.get('oobCode');
 
             if (actionCode) {
+                const loader = document.getElementById('loader');
                 const loaderText = document.getElementById('loaderText');
+                if (loader) loader.classList.remove('hidden');
+
                 if (mode === 'verifyEmail') {
-                    if(loaderText) loaderText.innerText = "E-posta hesabınız onaylanıyor...";
+                    if(loaderText) loaderText.innerText = "Hesabınız doğrulanıyor, lütfen bekleyin...";
                     try {
                         await applyActionCode(auth, actionCode);
-                        alert("Tebrikler! Hesabınız onaylandı. Giriş yapabilirsiniz.");
+                        alert("E-posta adresiniz başarıyla onaylandı! Şimdi giriş yapabilirsiniz.");
                     } catch (error) {
                         console.error("Doğrulama hatası:", error);
-                        alert("Onay kodu geçersiz veya süresi dolmuş.");
+                        alert("Onay işlemi başarısız: Kod geçersiz veya daha önce kullanılmış.");
                     }
                 }
-                // URL'yi temizle
+                // URL'deki karmaşayı temizle
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         };
@@ -211,6 +214,7 @@
             
             try {
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
+                // Önemli: Kayıt anında e-postayı gönderirken ayarları ekliyoruz
                 await sendEmailVerification(res.user, actionCodeSettings);
                 await setDoc(doc(db, "users", res.user.uid), { 
                     name, email, role: 'user', createdAt: serverTimestamp() 
@@ -283,8 +287,9 @@
             });
         }
 
-        // Başlangıçta URL aksiyonlarını kontrol et
-        handleUrlActions().then(() => {
+        // Akışı başlat
+        const init = async () => {
+            await handleUrlActions();
             onAuthStateChanged(auth, async (user) => {
                 currentUser = user;
                 const loader = document.getElementById('loader');
@@ -305,7 +310,9 @@
                 if (loader) loader.classList.add('hidden');
                 render();
             });
-        });
+        };
+
+        init();
     </script>
 </body>
 </html>
