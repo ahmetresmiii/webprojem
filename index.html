@@ -14,7 +14,6 @@
             font-family: 'Plus Jakarta Sans', sans-serif; 
             overflow-x: hidden; 
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
         .glass { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); }
         .chat-container::-webkit-scrollbar { width: 4px; }
@@ -198,11 +197,12 @@
             try {
                 const docRef = await addDoc(collection(db, "tickets"), {
                     code, pin, status: 'waiting',
+                    messageCount: 1,
                     createdAt: serverTimestamp(),
                     lastUpdate: serverTimestamp()
                 });
                 await addDoc(collection(db, "tickets", docRef.id, "messages"), {
-                    text: "Merhaba! Talebiniz alındı. En kısa sürede yanıtlayacağız. Şifrenizi unutmayın ve bildirimleri açtığınızdan emin olun daha sonra bu bilgiler ile giriş yapacaksınız!",
+                    text: "Merhaba! Talebiniz alındı. En kısa sürede yanıtlayacağız. Şifrenizi unutmayın!",
                     sender: 'system', createdAt: serverTimestamp()
                 });
                 state.currentTicket = { id: docRef.id, code };
@@ -239,12 +239,18 @@
             const text = input.value.trim();
             if(!text || !state.currentTicket) return;
             const sender = state.isAdmin ? 'admin' : 'user';
+            
             await addDoc(collection(db, "tickets", state.currentTicket.id, "messages"), {
                 text, sender, createdAt: serverTimestamp()
             });
-            await updateDoc(doc(db, "tickets", state.currentTicket.id), {
+
+            const tRef = doc(db, "tickets", state.currentTicket.id);
+            const tSnap = await getDocs(collection(db, "tickets", state.currentTicket.id, "messages"));
+            
+            await updateDoc(tRef, {
                 status: state.isAdmin ? 'replied' : 'waiting',
-                lastUpdate: serverTimestamp()
+                lastUpdate: serverTimestamp(),
+                messageCount: tSnap.size
             });
             input.value = "";
         }
@@ -280,24 +286,32 @@
 
         function listenAllTickets() {
             const q = query(collection(db, "tickets"), orderBy("lastUpdate", "desc"));
-            onSnapshot(q, (snap) => {
+            onSnapshot(q, async (snap) => {
                 const list = document.getElementById('adminTickets');
                 if(!list) return;
                 list.innerHTML = "";
-                snap.forEach(d => {
+
+                for (const d of snap.docs) {
                     const t = d.data();
+                    const id = d.id;
                     
+                    // OTOMATİK SİLME: Kullanıcı hiçbir şey yazmamışsa (sadece sistem mesajı varsa)
+                    if(t.messageCount <= 1 && t.status !== 'deleted') {
+                        await deleteDoc(doc(db, "tickets", id));
+                        continue; 
+                    }
+
                     if(state.adminFilter === 'deleted') {
-                        if(t.status !== 'deleted') return;
+                        if(t.status !== 'deleted') continue;
                     } else if(state.adminFilter === 'waiting') {
-                        if(t.status !== 'waiting') return;
+                        if(t.status !== 'waiting') continue;
                     } else {
-                        if(t.status === 'deleted') return;
+                        if(t.status === 'deleted') continue;
                     }
 
                     const div = document.createElement('div');
                     div.className = "bg-white/10 p-4 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer";
-                    div.onclick = () => { state.currentTicket = { id: d.id, code: t.code }; state.view = 'chat'; render(); };
+                    div.onclick = () => { state.currentTicket = { id, code: t.code }; state.view = 'chat'; render(); };
                     div.innerHTML = `
                         <div class="flex justify-between items-start mb-2">
                             <span class="font-bold text-yellow-300">#${t.code}</span>
@@ -312,10 +326,10 @@
                     
                     div.querySelector('.cp-notify-btn').onclick = (e) => { e.stopPropagation(); window.cpNotify(t.code); };
                     const delBtn = div.querySelector('.del-ticket-btn');
-                    if(delBtn) delBtn.onclick = (e) => { e.stopPropagation(); window.delT(d.id); };
+                    if(delBtn) delBtn.onclick = (e) => { e.stopPropagation(); window.delT(id); };
                     
                     list.appendChild(div);
-                });
+                }
             });
         }
 
@@ -327,13 +341,18 @@
         };
 
         window.delT = async (id) => { 
-            if(confirm("Talebi silmek yerine arşive/silinenler klasörüne taşımak istiyor musunuz?")) {
+            if(confirm("Talebi arşive taşımak istiyor musunuz? (Tamamen silmek için tekrar silin)")) {
                 try {
-                    await updateDoc(doc(db, "tickets", id), { status: 'deleted' });
-                } catch(e) { 
-                    try { await deleteDoc(doc(db, "tickets", id)); } 
-                    catch(err) { alert("Hata: Yetkiniz olmayabilir."); }
-                }
+                    const tRef = doc(db, "tickets", id);
+                    const tSnap = await getDocs(collection(db, "tickets", id, "messages"));
+                    const currentStatus = (await getDocs(query(collection(db, "tickets"), where("__name__", "==", id)))).docs[0].data().status;
+                    
+                    if(currentStatus === 'deleted') {
+                        await deleteDoc(tRef);
+                    } else {
+                        await updateDoc(tRef, { status: 'deleted' });
+                    }
+                } catch(e) { alert("Hata: " + e.message); }
             }
         };
 
@@ -341,6 +360,8 @@
             if(confirm("Mesaj silinsin mi?")) {
                 try {
                     await deleteDoc(doc(db, "tickets", tid, "messages", mid));
+                    const tSnap = await getDocs(collection(db, "tickets", tid, "messages"));
+                    await updateDoc(doc(db, "tickets", tid), { messageCount: tSnap.size });
                 } catch(e) { alert("Hata: Mesaj silinemedi."); }
             }
         };
