@@ -15,12 +15,14 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="app" class="max-w-md mx-auto min-h-screen p-4 flex flex-col justify-center">
-        <div id="loader" class="text-center">
+        <!-- Loader başlangıçta burada -->
+        <div id="loader" class="text-center py-20">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"></div>
             <p class="text-slate-500 text-xs">Sistem Yükleniyor...</p>
         </div>
@@ -34,9 +36,7 @@
             onAuthStateChanged, 
             signOut,
             sendPasswordResetEmail,
-            confirmPasswordReset,
-            createUserWithEmailAndPassword,
-            sendEmailVerification
+            createUserWithEmailAndPassword
         } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -73,22 +73,16 @@
         window.tid = null;
         window.chatUserName = "";
 
-        const actionCodeSettings = {
-            url: window.location.origin + window.location.pathname,
-            handleCodeInApp: true
-        };
-
         const render = () => {
-            appDiv.innerHTML = `<div class="animate-fade w-full">${getTemplate()}</div>`;
+            // Render yaparken sadece içeriği güncelle, ana app div'ini bozma
+            const template = getTemplate();
+            appDiv.innerHTML = `<div class="animate-fade w-full">${template}</div>`;
             bindEvents();
         };
 
         const getTemplate = () => {
-            // Giriş Yapılmışsa ve Veri Gelmişse Yönlendirme
-            if (currentUser && userData) {
-                if (currentView.startsWith('login')) {
-                    currentView = 'dashboard';
-                }
+            if (currentUser && userData && currentView.includes('login')) {
+                currentView = 'dashboard';
             }
 
             switch(currentView) {
@@ -100,8 +94,8 @@
                             </div>
                         </div>
                         <h2 class="text-xl font-bold mb-6 text-center">Kullanıcı Girişi</h2>
-                        <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500 text-white">
-                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500 text-white">
+                        <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500 text-white text-sm">
+                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500 text-white text-sm">
                         <button id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold transition-all">Giriş Yap</button>
                         <div class="mt-6 flex justify-between text-[10px] text-slate-500">
                             <button onclick="window.nav('register')">Hesap Oluştur</button>
@@ -119,8 +113,8 @@
                             </div>
                         </div>
                         <h2 class="text-xl font-bold mb-6 text-center text-red-400">Yönetici Girişi</h2>
-                        <input id="email" type="email" placeholder="Yönetici E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-red-500 text-white">
-                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-red-500 text-white">
+                        <input id="email" type="email" placeholder="Yönetici E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-red-500 text-white text-sm">
+                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-red-500 text-white text-sm">
                         <button id="btnLogin" class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-xl font-bold transition-all">Sisteme Eriş</button>
                         <button onclick="window.nav('login_user')" class="w-full mt-6 text-[10px] text-slate-500">Kullanıcı Girişine Dön</button>
                     </div>`;
@@ -128,15 +122,15 @@
                 case 'register': return `
                     <div class="glass p-8 rounded-3xl shadow-xl">
                         <h2 class="text-xl font-bold mb-6 text-center text-emerald-400">Yeni Hesap</h2>
-                        <input id="regName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white">
-                        <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white">
-                        <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 text-white">
+                        <input id="regName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white text-sm">
+                        <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white text-sm">
+                        <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 text-white text-sm">
                         <button id="btnRegister" class="w-full bg-emerald-600 py-4 rounded-xl font-bold">Kaydı Tamamla</button>
                         <button onclick="window.nav('login_user')" class="w-full mt-4 text-[10px] text-slate-500">Girişe Dön</button>
                     </div>`;
 
                 case 'dashboard': 
-                    if (!userData) return `<div class="text-center text-slate-500 text-xs">Yükleniyor...</div>`;
+                    if (!userData) return `<div class="text-center text-slate-500 text-xs py-20"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500 mx-auto mb-2"></div>Veriler Alınıyor...</div>`;
                     return `
                     <div class="flex justify-between items-center mb-6">
                         <div>
@@ -187,6 +181,7 @@
                             <button id="btnSend" class="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-95 transition-transform"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>`;
+                default: return '';
             }
         };
 
@@ -200,11 +195,13 @@
             if(currentView === 'dashboard') loadTickets();
             if(currentView === 'chat') loadMessages();
             if(currentView === 'adminManage') loadApplies();
-
             if(el('chatInput')) el('chatInput').onkeypress = (e) => { if(e.key === 'Enter') handleSend(); };
         };
 
-        window.nav = (v) => { currentView = v; render(); };
+        window.nav = (v) => { 
+            currentView = v; 
+            render(); 
+        };
 
         window.handleLogout = () => {
             signOut(auth).then(() => {
@@ -216,12 +213,12 @@
         };
 
         window.forgotPass = async () => {
-            const email = prompt("E-posta:");
+            const email = prompt("E-posta adresinizi girin:");
             if(!email) return;
             try {
-                await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
-                alert("Link gönderildi.");
-            } catch(e) { alert(e.message); }
+                await sendPasswordResetEmail(auth, email.trim());
+                alert("Sıfırlama bağlantısı gönderildi.");
+            } catch(e) { alert("Hata: " + e.message); }
         };
 
         window.copyNotify = () => {
@@ -238,23 +235,28 @@
         async function handleLogin() {
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('pass').value;
-            if(!email || !pass) return alert("Bilgileri girin.");
+            if(!email || !pass) return alert("E-posta ve şifre gereklidir.");
             try { 
                 await signInWithEmailAndPassword(auth, email, pass); 
-            } catch(e) { alert("Giriş yapılamadı."); }
+            } catch(e) { alert("Giriş hatası: " + e.message); }
         }
 
         async function handleRegister() {
             const name = document.getElementById('regName').value;
             const email = document.getElementById('regEmail').value.trim();
             const pass = document.getElementById('regPass').value;
-            if(!name || !email || !pass) return alert("Alanları doldurun.");
+            if(!name || !email || !pass) return alert("Tüm alanlar zorunludur.");
             try {
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
-                await setDoc(doc(db, "users", res.user.uid), { name, email, role: 'user', createdAt: serverTimestamp() });
-                alert("Kayıt başarılı.");
+                await setDoc(doc(db, "users", res.user.uid), { 
+                    name, 
+                    email, 
+                    role: 'user', 
+                    createdAt: serverTimestamp() 
+                });
+                alert("Hesap oluşturuldu.");
                 window.nav('login_user');
-            } catch(e) { alert(e.message); }
+            } catch(e) { alert("Kayıt hatası: " + e.message); }
         }
 
         async function handleNewTicket() {
@@ -294,7 +296,7 @@
             onSnapshot(q, (snap) => {
                 const list = document.getElementById('ticketList');
                 if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="text-center text-[10px] text-slate-600 py-10">Kayıt bulunamadı.</p>' : '';
+                list.innerHTML = snap.empty ? '<p class="text-center text-[10px] text-slate-600 py-10">Talep yok.</p>' : '';
                 snap.forEach(d => {
                     const data = d.data();
                     list.innerHTML += `<div onclick="window.tid='${d.id}'; window.chatUserName='${data.userName}'; window.nav('chat')" class="glass p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-white/5 transition-all group">
@@ -354,15 +356,14 @@
         }
 
         window.processApply = async (id, status) => {
-            if(!confirm("İşlem yapılsın mı?")) return;
+            if(!confirm("İşlem onaylansın mı?")) return;
             try {
-                if(status === 'admin') alert("Firestore'da role: 'admin' olarak güncelleyin.");
                 await deleteDoc(doc(db, "adminApplies", id));
             } catch(e) { alert(e.message); }
         };
 
-        const init = async () => {
-            onAuthStateChanged(auth, async (user) => {
+        const init = () => {
+            onAuthStateChanged(auth, (user) => {
                 currentUser = user;
                 if(user) {
                     onSnapshot(doc(db, "users", user.uid), (uDoc) => {
@@ -370,20 +371,23 @@
                             userData = uDoc.data();
                             render();
                         } else {
-                            // Veri yoksa hata verme, bekle
-                            console.log("Kullanıcı verisi henüz oluşmadı.");
+                            render();
                         }
+                        // Loader her durumda güvenle kaldırılır
+                        const l = document.getElementById('loader');
+                        if(l) l.classList.add('hidden');
                     });
                 } else {
                     userData = null;
                     render();
+                    const l = document.getElementById('loader');
+                    if(l) l.classList.add('hidden');
                 }
-                const l = document.getElementById('loader');
-                if(l) l.classList.add('hidden');
             });
         };
 
-        init();
+        // DOM yüklendikten sonra Firebase'i başlat
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
