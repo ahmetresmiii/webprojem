@@ -3,31 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Destek Paneli | Canlı Mesajlaşma</title>
+    <title>Destek Paneli | Kurumsal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-        .glass { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .chat-container::-webkit-scrollbar { width: 4px; }
-        .chat-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: white; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-gradient-to-tr from-rose-500 via-purple-600 to-indigo-700 min-h-screen text-white p-4 md:p-8">
+<body>
 
-    <div id="app" class="max-w-2xl mx-auto">
-        <div id="loading" class="flex flex-col items-center justify-center h-[80vh]">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-white mb-4"></div>
-            <p>Sistem Hazırlanıyor...</p>
+    <div id="app" class="max-w-md mx-auto min-h-screen p-4 flex flex-col justify-center">
+        <div id="loader" class="text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+            <p class="text-slate-500">Sistem Hazırlanıyor...</p>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, doc, updateDoc, deleteDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged, 
+            signOut,
+            sendEmailVerification 
+        } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            query, 
+            where, 
+            onSnapshot, 
+            orderBy, 
+            doc, 
+            getDoc, 
+            updateDoc, 
+            setDoc, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBzvyfRRz49w76fpNq919p-EgOIaeZhB4E",
@@ -39,332 +58,275 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
         const appDiv = document.getElementById('app');
 
-        let state = {
-            view: 'menu',
-            currentTicket: null,
-            isAdmin: false,
-            adminFilter: 'all'
-        };
+        let currentUser = null;
+        let userData = null;
+        let currentView = 'login';
 
         const render = () => {
-            appDiv.innerHTML = '';
-            const content = document.createElement('div');
-            content.className = "animate-fade";
-
-            switch(state.view) {
-                case 'menu':
-                    content.innerHTML = `
-                        <div class="glass rounded-[2rem] p-8 text-center shadow-2xl">
-                            <div class="mb-6 inline-block p-4 bg-white/20 rounded-full animate-bounce">
-                                <i class="fas fa-headset text-5xl text-yellow-300"></i>
-                            </div>
-                            <h1 class="text-3xl font-extrabold mb-2 text-white">Destek Sistemi</h1>
-                            <p class="text-white/70 mb-8">Hızlı çözüm merkezi!</p>
-                            <div class="grid gap-4">
-                                <button id="btn-new" class="bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-4 rounded-2xl transition-all shadow-lg">Yeni Destek Talebi Aç</button>
-                                <button id="btn-query" class="bg-indigo-400 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg">Taleplerimi Sorgula</button>
-                            </div>
-                            <button id="btn-admin-entry" class="mt-8 text-white/50 hover:text-white text-sm transition-colors">
-                                <i class="fas fa-lock mr-2"></i>Yönetici Girişi
-                            </button>
-                        </div>`;
-                    break;
-                case 'newTicket':
-                    content.innerHTML = `
-                        <div class="glass rounded-[2rem] p-8 shadow-2xl">
-                            <button id="btn-back" class="mb-6 text-white/70 hover:text-white flex items-center"><i class="fas fa-chevron-left mr-2"></i>Geri</button>
-                            <h2 class="text-2xl font-bold mb-6">Yeni Talep</h2>
-                            <div class="space-y-4">
-                                <label class="block text-sm text-white/70 ml-1">4 Haneli PIN Belirleyin</label>
-                                <input id="pinInput" type="text" maxlength="4" placeholder="****" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center text-2xl tracking-[0.5em] focus:border-yellow-400">
-                                <button id="btn-create-exec" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg">Talebi Başlat</button>
-                            </div>
-                        </div>`;
-                    break;
-                case 'queryTicket':
-                    content.innerHTML = `
-                        <div class="glass rounded-[2rem] p-8 shadow-2xl">
-                            <button id="btn-back" class="mb-6 text-white/70 hover:text-white flex items-center"><i class="fas fa-chevron-left mr-2"></i>Geri</button>
-                            <h2 class="text-2xl font-bold mb-6">Sorgula(BİRDEN FAZALA KEZ TIKLAMA)</h2>
-                            <div class="space-y-4">
-                                <input id="codeInput" type="text" placeholder="6 Haneli Talep Kodu" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center">
-                                <input id="pinQueryInput" type="text" maxlength="4" placeholder="4 Haneli PIN" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center">
-                                <button id="btn-query-exec" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg">Sorgula</button>
-                            </div>
-                        </div>`;
-                    break;
-                case 'chat':
-                    content.innerHTML = `
-                        <div class="glass rounded-[2rem] overflow-hidden flex flex-col h-[85vh] shadow-2xl">
-                            <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/10">
-                                <div class="flex items-center gap-4">
-                                    <button id="btn-chat-back" class="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-all">
-                                        <i class="fas fa-arrow-left"></i>
-                                    </button>
-                                    <div>
-                                        <p class="text-[10px] text-white/50 uppercase tracking-widest">TALEP KODU</p>
-                                        <h3 class="font-bold text-yellow-300">#${state.currentTicket.code}</h3>
-                                    </div>
-                                </div>
-                                <button id="btn-close" class="text-white/40 hover:text-white text-xl p-2"><i class="fas fa-times"></i></button>
-                            </div>
-                            <div id="msgBox" class="flex-1 overflow-y-auto p-5 space-y-4 chat-container"></div>
-                            <div class="p-4 bg-black/20 flex gap-2">
-                                <input id="chatInput" type="text" placeholder="Mesajınızı buraya yazın..." class="flex-1 bg-white/10 border border-white/20 p-4 rounded-2xl outline-none focus:bg-white/20">
-                                <button id="btn-send" class="bg-yellow-400 text-purple-900 w-14 h-14 rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl">
-                                    <i class="fas fa-paper-plane text-xl"></i>
-                                </button>
-                            </div>
-                        </div>`;
-                    break;
-                case 'adminLogin':
-                    content.innerHTML = `
-                        <div class="glass rounded-[2rem] p-8 text-center shadow-2xl">
-                            <button id="btn-back" class="mb-4 text-white/70 hover:text-white block"><i class="fas fa-chevron-left mr-2"></i>İptal</button>
-                            <h2 class="text-2xl font-bold mb-6">Admin Girişi</h2>
-                            <input id="adminPass" type="password" placeholder="Yönetici Şifresi" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl mb-4 outline-none text-center">
-                            <button id="btn-admin-login-exec" class="w-full bg-purple-600 py-4 rounded-2xl font-bold shadow-lg">Sisteme Giriş Yap</button>
-                        </div>`;
-                    break;
-                case 'adminPanel':
-                    content.innerHTML = `
-                        <div class="glass rounded-[2rem] p-6 h-[90vh] flex flex-col shadow-2xl">
-                            <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-xl font-bold"><i class="fas fa-shield-alt mr-2 text-yellow-300"></i>Panel</h2>
-                                <button id="btn-logout" class="bg-red-500/20 hover:bg-red-500 px-4 py-2 rounded-xl text-xs transition-all">Çıkış</button>
-                            </div>
-                            <div class="flex gap-2 mb-6">
-                                <button id="filter-all" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'all' ? 'bg-white text-purple-700' : 'bg-white/10'}">Hepsi</button>
-                                <button id="filter-waiting" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'waiting' ? 'bg-white text-purple-700' : 'bg-white/10'}">Bekleyen</button>
-                                <button id="filter-deleted" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'deleted' ? 'bg-white text-purple-700' : 'bg-white/10'}">Arşiv</button>
-                            </div>
-                            <div id="adminTickets" class="flex-1 overflow-y-auto space-y-3"></div>
-                        </div>`;
-                    break;
-            }
-
-            appDiv.appendChild(content);
+            appDiv.innerHTML = `<div class="animate-fade w-full">${getTemplate()}</div>`;
             bindEvents();
-            if(state.view === 'chat' && state.currentTicket) listenMessages(state.currentTicket.id);
-            if(state.view === 'adminPanel') listenAllTickets();
+        };
+
+        const getTemplate = () => {
+            if (!currentUser && !['login', 'register', 'adminApply', 'verifyEmail'].includes(currentView)) currentView = 'login';
+
+            switch(currentView) {
+                case 'login': return `
+                    <div class="glass p-8 rounded-3xl shadow-xl">
+                        <h2 class="text-2xl font-bold mb-6 text-center text-indigo-400">Giriş Yap</h2>
+                        <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500">
+                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500">
+                        <button id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold transition-all">Giriş</button>
+                        <div class="mt-6 flex justify-between text-xs text-slate-400">
+                            <button onclick="window.nav('register')">Hesap Oluştur</button>
+                            <button onclick="window.nav('adminApply')">Yönetici Başvurusu</button>
+                        </div>
+                    </div>`;
+                
+                case 'register': return `
+                    <div class="glass p-8 rounded-3xl shadow-xl">
+                        <h2 class="text-2xl font-bold mb-6 text-center text-emerald-400">Hesap Oluştur</h2>
+                        <input id="regName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
+                        <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
+                        <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10">
+                        <button id="btnRegister" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold transition-all">Kaydı Tamamla</button>
+                        <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Vazgeç</button>
+                    </div>`;
+
+                case 'verifyEmail': return `
+                    <div class="glass p-8 rounded-3xl shadow-xl text-center">
+                        <div class="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-envelope-open-text text-2xl"></i>
+                        </div>
+                        <h2 class="text-xl font-bold mb-2">E-posta Doğrulanmadı</h2>
+                        <p class="text-slate-400 text-sm mb-6">Lütfen <b>${currentUser?.email}</b> adresine gönderdiğimiz bağlantıya tıklayın.</p>
+                        <button onclick="location.reload()" class="w-full bg-white/10 hover:bg-white/20 py-3 rounded-xl mb-3 text-sm font-semibold transition-all">Doğruladım, Yenile</button>
+                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline">E-postayı tekrar gönder</button>
+                        <button id="btnLogout" class="block w-full mt-8 text-xs text-red-400/50">Çıkış Yap</button>
+                    </div>`;
+
+                case 'adminApply': return `
+                    <div class="glass p-8 rounded-3xl shadow-xl border-purple-500/20">
+                        <h2 class="text-xl font-bold mb-2 text-purple-400">Yönetici Başvurusu</h2>
+                        <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-wider">Başvurunuz doğrudan Ahmet Bey'e iletilecektir.</p>
+                        <input id="applyName" type="text" placeholder="Adınız Soyadınız" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
+                        <input id="applyEmail" type="email" placeholder="E-posta Adresiniz" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
+                        <textarea id="applyNote" placeholder="Neden admin olmak istiyorsunuz?" class="w-full bg-white/5 p-4 rounded-xl mb-6 h-24 outline-none border border-white/10"></textarea>
+                        <button id="btnSubmitApply" class="w-full bg-purple-600 py-4 rounded-xl font-bold">Başvuruyu Gönder</button>
+                        <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Geri Dön</button>
+                    </div>`;
+
+                case 'dashboard': return `
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="font-bold">Selam, ${userData?.name?.split(' ')[0] || 'Kullanıcı'}</h1>
+                            <p class="text-[10px] text-slate-500">Destek Panelin</p>
+                        </div>
+                        <button id="btnLogout" class="text-slate-500 hover:text-red-400"><i class="fas fa-power-off"></i></button>
+                    </div>
+                    <button id="btnNewTicket" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold mb-6">+ Yeni Destek Talebi</button>
+                    <div id="ticketList" class="space-y-3"></div>
+                    ${userData?.role === 'admin' ? `
+                        <button onclick="window.nav('adminPanel')" class="mt-10 w-full border border-yellow-500/30 p-4 rounded-2xl text-yellow-500 text-sm font-bold">
+                            <i class="fas fa-shield-alt mr-2"></i> Yönetici Paneline Git
+                        </button>` : ''}`;
+
+                case 'adminPanel': return `
+                    <div class="flex items-center gap-4 mb-8">
+                        <button onclick="window.nav('dashboard')" class="text-slate-500"><i class="fas fa-arrow-left"></i></button>
+                        <h1 class="font-bold">Yönetim Merkezi</h1>
+                    </div>
+                    <div id="applyList" class="space-y-2"></div>`;
+
+                case 'chat': return `
+                    <div class="glass rounded-3xl flex flex-col h-[85vh]">
+                        <div class="p-4 border-b border-white/10 flex justify-between items-center">
+                            <button onclick="window.nav('dashboard')" class="text-slate-500"><i class="fas fa-chevron-left"></i></button>
+                            <span class="text-xs font-bold text-indigo-400">TALEP #${window.tid?.slice(-4)}</span>
+                            <div class="w-4"></div>
+                        </div>
+                        <div id="msgBox" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+                        <div class="p-4 bg-white/5 flex gap-2">
+                            <input id="chatInput" type="text" placeholder="Mesaj..." class="flex-1 bg-white/10 p-3 rounded-xl outline-none text-sm">
+                            <button id="btnSend" class="bg-indigo-600 w-10 h-10 rounded-xl"><i class="fas fa-paper-plane text-xs"></i></button>
+                        </div>
+                    </div>`;
+            }
         };
 
         const bindEvents = () => {
-            const click = (id, fn) => {
-                const el = document.getElementById(id);
-                if(el) el.onclick = fn;
-            };
-
-            click('btn-new', () => { state.view = 'newTicket'; render(); });
-            click('btn-query', () => { state.view = 'queryTicket'; render(); });
-            click('btn-admin-entry', () => { state.view = 'adminLogin'; render(); });
-            click('btn-back', () => { state.view = 'menu'; render(); });
-            click('btn-close', () => { state.view = 'menu'; render(); });
-            click('btn-logout', () => location.reload());
-            click('btn-chat-back', () => {
-                state.view = state.isAdmin ? 'adminPanel' : 'menu';
-                render();
-            });
-
-            click('btn-create-exec', handleCreateTicket);
-            click('btn-query-exec', handleQueryTicket);
-            click('btn-admin-login-exec', handleAdminLogin);
-            click('btn-send', sendMessage);
+            const el = (id) => document.getElementById(id);
+            if(el('btnLogin')) el('btnLogin').onclick = handleLogin;
+            if(el('btnRegister')) el('btnRegister').onclick = handleRegister;
+            if(el('btnLogout')) el('btnLogout').onclick = () => signOut(auth);
+            if(el('btnNewTicket')) el('btnNewTicket').onclick = handleNewTicket;
+            if(el('btnSend')) el('btnSend').onclick = handleSend;
+            if(el('btnSubmitApply')) el('btnSubmitApply').onclick = handleSubmitApply;
             
-            click('filter-all', () => { state.adminFilter = 'all'; render(); });
-            click('filter-waiting', () => { state.adminFilter = 'waiting'; render(); });
-            click('filter-deleted', () => { state.adminFilter = 'deleted'; render(); });
-
-            const chatInput = document.getElementById('chatInput');
-            if(chatInput) {
-                chatInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
-            }
+            if(currentView === 'dashboard') loadTickets();
+            if(currentView === 'chat') loadMessages();
+            if(currentView === 'adminPanel') loadAdminData();
         };
 
-        async function handleCreateTicket() {
-            const pin = document.getElementById('pinInput').value.toString().trim();
-            if (pin.length !== 4) return alert("PIN 4 haneli olmalıdır!");
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
+        window.nav = (v) => { currentView = v; render(); };
+
+        window.resendEmail = async () => {
+            if(!auth.currentUser) return;
             try {
-                const docRef = await addDoc(collection(db, "tickets"), {
-                    code: code,
-                    pin: pin,
-                    status: 'waiting',
-                    messageCount: 1,
-                    createdAt: serverTimestamp(),
-                    lastUpdate: serverTimestamp()
-                });
-                await addDoc(collection(db, "tickets", docRef.id, "messages"), {
-                    text: "Merhaba! Talebiniz alındı.talep kodunuzu ve PIN kodunuzu unutmayın daha sonra bildirim gödereçeğiz mesaj yazıp çıkabilrsiniz.PİNİNİZ: " + pin,
-                    sender: 'system', createdAt: serverTimestamp()
-                });
-                state.currentTicket = { id: docRef.id, code: code };
-                state.view = 'chat';
-                render();
-            } catch (e) { alert("Hata: " + e.message); }
+                await sendEmailVerification(auth.currentUser);
+                alert("Doğrulama maili tekrar gönderildi.");
+            } catch(e) { alert("Hata: " + e.message); }
+        };
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            if(!email || !pass) return alert("Boş alan bırakmayın.");
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch(e) { alert("Giriş Hatası: " + e.message); }
         }
 
-        async function handleQueryTicket() {
-            const code = document.getElementById('codeInput').value.toString().trim();
-            const pin = document.getElementById('pinQueryInput').value.toString().trim();
+        async function handleRegister() {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const btn = document.getElementById('btnRegister');
             
-            if (!code || !pin) return alert("Bilgileri doldurun!");
+            if(!name || !email || pass.length < 6) return alert("Eksik bilgi veya kısa şifre.");
             
-            const q = query(collection(db, "tickets"), where("code", "==", code));
-            const snap = await getDocs(q);
+            btn.disabled = true;
+            btn.innerText = "İşleniyor...";
             
-            if (!snap.empty) {
-                const tDoc = snap.docs[0];
-                const data = tDoc.data();
-                
-                // PIN kontrolünü hem string hem number ihtimaline karşı yapıyoruz
-                if (data.pin.toString() === pin.toString()) {
-                    if(data.status === 'deleted') return alert("Bu talep arşive kaldırılmış bu kodunuzla yeni talep açabilirsiniz yeni talepde önceki kodunuzu belirtiniz.");
-                    state.currentTicket = { id: tDoc.id, code: data.code };
-                    state.view = 'chat';
-                    render();
-                } else {
-                    alert("Hatalı PIN!");
-                }
-            } else { 
-                alert("Böyle bir talep kodu bulunamadı!"); 
+            try {
+                const res = await createUserWithEmailAndPassword(auth, email, pass);
+                // 1. Mail doğrulama gönder
+                await sendEmailVerification(res.user);
+                // 2. Firestore'a kullanıcıyı kaydet
+                await setDoc(doc(db, "users", res.user.uid), { 
+                    name, email, role: 'user', createdAt: serverTimestamp() 
+                });
+                alert("Kayıt başarılı! Lütfen mail kutunuzu kontrol edip hesabınızı doğrulayın.");
+                signOut(auth); // Doğrulanana kadar dışarı atalım
+                window.nav('login');
+            } catch(e) { 
+                alert("Kayıt Hatası: " + e.message); 
+                btn.disabled = false;
+                btn.innerText = "Kaydı Tamamla";
             }
         }
 
-        function handleAdminLogin() {
-            if(document.getElementById('adminPass').value === "24.37A") {
-                state.isAdmin = true;
-                state.view = 'adminPanel';
-                render();
-            } else { alert("Şifre Yanlış!"); }
+        async function handleSubmitApply() {
+            const name = document.getElementById('applyName').value;
+            const email = document.getElementById('applyEmail').value;
+            const note = document.getElementById('applyNote').value;
+            if(!name || !email) return alert("Zorunlu alanları doldurun.");
+            try {
+                await addDoc(collection(db, "admin_applications"), { 
+                    name, email, reason: note, status: 'pending', 
+                    targetAdmin: "ahmetmesrurresmi0@gmail.com", createdAt: serverTimestamp() 
+                });
+                alert("Başvuru gönderildi.");
+                window.nav('login');
+            } catch(e) { alert("Hata: " + e.message); }
         }
 
-        async function sendMessage() {
+        async function handleNewTicket() {
+            const tRef = await addDoc(collection(db, "tickets"), { 
+                userId: currentUser.uid, userName: userData?.name || 'Kullanıcı', 
+                status: 'açık', lastUpdate: serverTimestamp() 
+            });
+            window.tid = tRef.id;
+            window.nav('chat');
+        }
+
+        async function handleSend() {
             const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if(!text || !state.currentTicket) return;
-            const sender = state.isAdmin ? 'admin' : 'user';
-            
-            await addDoc(collection(db, "tickets", state.currentTicket.id, "messages"), {
-                text, sender, createdAt: serverTimestamp()
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "tickets", window.tid, "messages"), {
+                text: input.value, senderId: currentUser.uid, createdAt: serverTimestamp()
             });
-
-            const tRef = doc(db, "tickets", state.currentTicket.id);
-            const tSnap = await getDocs(collection(db, "tickets", state.currentTicket.id, "messages"));
-            
-            await updateDoc(tRef, {
-                status: state.isAdmin ? 'replied' : 'waiting',
-                lastUpdate: serverTimestamp(),
-                messageCount: tSnap.size
-            });
-            input.value = "";
+            await updateDoc(doc(db, "tickets", window.tid), { lastUpdate: serverTimestamp() });
+            input.value = '';
         }
 
-        function listenMessages(ticketId) {
-            const q = query(collection(db, "tickets", ticketId, "messages"), orderBy("createdAt", "asc"));
+        function loadTickets() {
+            const q = query(collection(db, "tickets"), where("userId", "==", currentUser.uid), orderBy("lastUpdate", "desc"));
+            onSnapshot(q, (snap) => {
+                const list = document.getElementById('ticketList');
+                if(!list) return;
+                list.innerHTML = snap.empty ? '<p class="text-center text-slate-500 text-xs py-4">Talebiniz yok.</p>' : '';
+                snap.forEach(d => {
+                    list.innerHTML += `<div onclick="window.tid='${d.id}'; window.nav('chat')" class="glass p-4 rounded-xl flex justify-between items-center cursor-pointer">
+                        <span class="text-xs font-bold text-slate-400">#${d.id.slice(-6)}</span>
+                        <span class="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">AÇIK</span>
+                    </div>`;
+                });
+            });
+        }
+
+        function loadMessages() {
+            const q = query(collection(db, "tickets", window.tid, "messages"), orderBy("createdAt", "asc"));
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('msgBox');
                 if(!box) return;
-                box.innerHTML = "";
-                snap.forEach(mDoc => {
-                    const m = mDoc.data();
-                    const isSystem = m.sender === 'system';
-                    const isMe = state.isAdmin ? m.sender === 'admin' : m.sender === 'user';
-                    const align = isMe ? 'justify-end' : (isSystem ? 'justify-center' : 'justify-start');
-                    const color = isMe ? 'bg-yellow-400 text-purple-900 rounded-br-none' : (isSystem ? 'bg-white/10 text-white/50 text-[10px] text-center' : 'bg-white/20 text-white rounded-bl-none');
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `flex ${align} animate-fade group relative`;
-                    messageDiv.innerHTML = `
-                        <div class="max-w-[85%] p-4 rounded-2xl shadow-md ${color}">
-                            ${m.text}
-                            ${state.isAdmin && !isSystem ? `<button class="del-msg-btn absolute -top-2 -right-2 bg-red-500 w-5 h-5 rounded-full text-[10px] hidden group-hover:flex items-center justify-center shadow-lg"><i class="fas fa-times"></i></button>` : ''}
-                        </div>`;
-                    
-                    const delBtn = messageDiv.querySelector('.del-msg-btn');
-                    if (delBtn) delBtn.onclick = (e) => { e.stopPropagation(); window.delM(ticketId, mDoc.id); };
-                    box.appendChild(messageDiv);
+                box.innerHTML = '';
+                snap.forEach(d => {
+                    const m = d.data();
+                    const isMe = m.senderId === currentUser.uid;
+                    box.innerHTML += `<div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-indigo-600' : 'bg-white/10'} text-xs">${m.text}</div>
+                    </div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });
         }
 
-        function listenAllTickets() {
-            const q = query(collection(db, "tickets"), orderBy("lastUpdate", "desc"));
-            onSnapshot(q, async (snap) => {
-                const list = document.getElementById('adminTickets');
+        function loadAdminData() {
+            onSnapshot(collection(db, "admin_applications"), (snap) => {
+                const list = document.getElementById('applyList');
                 if(!list) return;
-                list.innerHTML = "";
-
-                for (const d of snap.docs) {
-                    const t = d.data();
-                    const id = d.id;
-                    
-                    // OTOMATİK SİLME: Kullanıcı hiçbir şey yazmamışsa
-                    if(t.messageCount <= 1 && t.status !== 'deleted') {
-                        await deleteDoc(doc(db, "tickets", id));
-                        continue; 
-                    }
-
-                    if(state.adminFilter === 'deleted' && t.status !== 'deleted') continue;
-                    if(state.adminFilter === 'waiting' && t.status !== 'waiting') continue;
-                    if(state.adminFilter === 'all' && t.status === 'deleted') continue;
-
-                    const div = document.createElement('div');
-                    div.className = "bg-white/10 p-4 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer";
-                    div.onclick = () => { state.currentTicket = { id, code: t.code }; state.view = 'chat'; render(); };
-                    div.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="font-bold text-yellow-300">#${t.code}</span>
-                            <span class="text-[10px] px-2 py-1 rounded ${t.status === 'waiting' ? 'bg-red-500' : (t.status === 'deleted' ? 'bg-gray-600' : 'bg-emerald-500')} font-bold">
-                                ${t.status === 'waiting' ? 'BEKLEYEN' : (t.status === 'deleted' ? 'ARŞİV' : 'OKUNDU')}
-                            </span>
-                        </div>
-                        <div class="flex gap-2">
-                            <button class="cp-notify-btn flex-1 bg-indigo-500 text-[10px] py-2 rounded-lg font-bold">Kopyala</button>
-                            <button class="del-ticket-btn bg-rose-600 px-3 py-2 rounded-lg text-xs"><i class="fas fa-trash"></i></button>
-                        </div>`;
-                    
-                    div.querySelector('.cp-notify-btn').onclick = (e) => { e.stopPropagation(); window.cpNotify(t.code); };
-                    div.querySelector('.del-ticket-btn').onclick = (e) => { e.stopPropagation(); window.delT(id, t.status); };
-                    list.appendChild(div);
-                }
+                list.innerHTML = snap.empty ? '<p class="italic text-xs text-slate-500">Bekleyen yok.</p>' : '';
+                snap.forEach(d => {
+                    const a = d.data();
+                    if(a.status !== 'pending') return;
+                    list.innerHTML += `<div class="bg-white/5 p-3 rounded-xl flex justify-between items-center text-xs">
+                        <div><p class="font-bold">${a.name}</p><p class="text-slate-500">${a.email}</p></div>
+                        <button onclick="window.approveAdmin('${d.id}', '${a.email}')" class="bg-emerald-600 px-3 py-1 rounded-lg">Onayla</button>
+                    </div>`;
+                });
             });
         }
 
-        window.cpNotify = (code) => {
-            const text = `KOD SAHIBI: #${code} TALEBINIZ SONUÇLANMIŞTIR. ŞİFRENİZ İLE BAKABİLİRSİNİZ.`;
-            const el = document.createElement('textarea'); el.value = text;
-            document.body.appendChild(el); el.select(); document.execCommand('copy');
-            document.body.removeChild(el); alert("Kopyalandı!");
+        window.approveAdmin = async (docId, email) => {
+            await updateDoc(doc(db, "admin_applications", docId), { status: 'approved' });
+            alert(email + " onaylandı.");
         };
 
-        window.delT = async (id, currentStatus) => { 
-            if(confirm(currentStatus === 'deleted' ? "Bu talep TAMAMEN silinsin mi?" : "Talep arşive taşınsın mı?")) {
-                try {
-                    if(currentStatus === 'deleted') {
-                        await deleteDoc(doc(db, "tickets", id));
-                    } else {
-                        await updateDoc(doc(db, "tickets", id), { status: 'deleted' });
-                    }
-                } catch(e) { alert("Hata: " + e.message); }
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            const loader = document.getElementById('loader');
+            
+            if(user) {
+                // E-posta doğrulama kontrolü
+                if(!user.emailVerified) {
+                    currentView = 'verifyEmail';
+                } else {
+                    const uDoc = await getDoc(doc(db, "users", user.uid));
+                    userData = uDoc.exists() ? uDoc.data() : null;
+                    currentView = 'dashboard';
+                }
+            } else {
+                currentView = 'login';
             }
-        };
-
-        window.delM = async (tid, mid) => { 
-            if(confirm("Mesaj silinsin mi?")) {
-                try {
-                    await deleteDoc(doc(db, "tickets", tid, "messages", mid));
-                    const tSnap = await getDocs(collection(db, "tickets", tid, "messages"));
-                    await updateDoc(doc(db, "tickets", tid), { messageCount: tSnap.size });
-                } catch(e) { alert("Hata!"); }
-            }
-        };
-
-        window.onload = () => { render(); };
+            
+            if (loader) loader.classList.add('hidden');
+            render();
+        });
     </script>
 </body>
 </html>
