@@ -105,7 +105,7 @@
                     <div class="glass p-8 rounded-3xl shadow-xl">
                         <h2 class="text-2xl font-bold mb-6 text-center text-indigo-400">Giriş Yap</h2>
                         <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500">
-                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500">
+                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500 text-white">
                         <button id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold transition-all">Giriş</button>
                         <div class="mt-6 flex justify-between text-[10px] text-slate-500">
                             <button onclick="window.nav('register')">Hesap Oluştur</button>
@@ -118,11 +118,11 @@
                     <div class="glass p-8 rounded-3xl shadow-xl">
                         <h2 class="text-xl font-bold mb-2 text-indigo-400">Yönetici Başvurusu</h2>
                         <p class="text-[10px] text-slate-500 mb-6">Başvurunuz incelendikten sonra size dönüş yapılacaktır.</p>
-                        <input id="apName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
-                        <input id="apEmail" type="email" placeholder="İletişim E-postası" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
-                        <textarea id="apReason" placeholder="Neden yönetici olmak istiyorsunuz?" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 h-24 text-sm"></textarea>
-                        <button id="btnApply" class="w-full bg-indigo-600 py-4 rounded-xl font-bold">Başvuruyu Gönder</button>
-                        <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Geri Dön</button>
+                        <input id="apName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white">
+                        <input id="apEmail" type="email" placeholder="İletişim E-postası" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white">
+                        <textarea id="apReason" placeholder="Neden yönetici olmak istiyorsunuz?" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 h-24 text-sm text-white"></textarea>
+                        <button id="btnApply" class="w-full bg-indigo-600 py-4 rounded-xl font-bold mb-3">Başvuruyu Gönder</button>
+                        <button onclick="window.nav('login')" class="w-full py-3 rounded-xl border border-white/10 text-xs font-bold hover:bg-white/5">Zaten Hesabım Var, Giriş Yap</button>
                     </div>`;
 
                 case 'register': return `
@@ -150,14 +150,14 @@
                     <div class="flex justify-between items-center mb-8">
                         <div>
                             <h1 class="font-bold">Selam, ${userData?.name || 'Kullanıcı'}</h1>
-                            <p class="text-[10px] text-slate-500">${userData?.role === 'admin' ? 'YÖNETİCİ PANELİ' : 'DESTEK PANELİ'}</p>
+                            <p class="text-[10px] text-slate-500 uppercase">${userData?.role === 'admin' ? 'Yönetici Paneli' : 'Destek Paneli'}</p>
                         </div>
                         <button id="btnLogout" class="text-red-400"><i class="fas fa-power-off"></i></button>
                     </div>
                     ${userData?.role === 'admin' ? `
                         <div class="grid grid-cols-2 gap-3 mb-6">
-                            <button onclick="window.nav('dashboard')" class="glass p-4 rounded-2xl text-xs font-bold border-indigo-500/50">Talepler</button>
-                            <button onclick="window.nav('adminManage')" class="glass p-4 rounded-2xl text-xs font-bold opacity-50">Başvurular</button>
+                            <button onclick="window.nav('dashboard')" class="glass p-4 rounded-2xl text-xs font-bold ${currentView === 'dashboard' ? 'border-indigo-500/50 bg-white/5' : 'opacity-50'}">Talepler</button>
+                            <button onclick="window.nav('adminManage')" class="glass p-4 rounded-2xl text-xs font-bold ${currentView === 'adminManage' ? 'border-indigo-500/50 bg-white/5' : 'opacity-50'}">Başvurular</button>
                         </div>
                     ` : `
                         <button id="btnNewTicket" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold mb-6">Yeni Destek Talebi Aç</button>
@@ -167,7 +167,7 @@
                 case 'adminManage': return `
                     <div class="flex justify-between items-center mb-8">
                         <button onclick="window.nav('dashboard')" class="text-slate-500"><i class="fas fa-chevron-left"></i></button>
-                        <h1 class="font-bold text-xs">YÖNETİCİ BAŞVURULARI</h1>
+                        <h1 class="font-bold text-xs uppercase">Yönetici Başvuruları</h1>
                         <div class="w-4"></div>
                     </div>
                     <div id="applyList" class="space-y-3"></div>`;
@@ -227,7 +227,12 @@
         async function handleLogin() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            try { await signInWithEmailAndPassword(auth, email, pass); } catch(e) { alert("Hata: " + e.message); }
+            if(!email || !pass) return alert("Lütfen alanları doldurun.");
+            try { 
+                await signInWithEmailAndPassword(auth, email, pass); 
+            } catch(e) { 
+                alert("Giriş Başarısız: E-posta veya şifre yanlış."); 
+            }
         }
 
         async function handleRegister() {
@@ -238,7 +243,7 @@
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
                 await sendEmailVerification(res.user, actionCodeSettings);
                 await setDoc(doc(db, "users", res.user.uid), { name, email, role: 'user', createdAt: serverTimestamp() });
-                alert("Kayıt başarılı! Mailinizi onaylayın.");
+                alert("Kayıt başarılı! Lütfen mail adresinizi onaylayın.");
                 signOut(auth);
                 window.nav('login');
             } catch(e) { alert(e.message); }
@@ -251,7 +256,7 @@
             if(!name || !email || !reason) return alert("Tüm alanları doldurun.");
             try {
                 await addDoc(collection(db, "adminApplies"), { name, email, reason, status: 'pending', createdAt: serverTimestamp() });
-                alert("Başvurunuz alındı.");
+                alert("Başvurunuz başarıyla alındı. İnceleme sonrası e-posta ile bilgilendirileceksiniz.");
                 window.nav('login');
             } catch(e) { alert(e.message); }
         }
@@ -263,9 +268,9 @@
             });
             window.tid = tRef.id;
             window.chatUserName = userData?.name;
-            // İlk Mesaj (Uyarı)
+            // İlk Mesaj (Sistem Uyarısı - Talep Ettiğin Format)
             await addDoc(collection(db, "tickets", tRef.id, "messages"), {
-                text: `Sistem: Merhaba ${userData?.name}, hesabınızı unutmayın ve bildirimleri açtığınızdan emin olun. Size adınız ile geri dönüş yapacağız.`,
+                text: `Sistem: Merhaba ${userData?.name}, hesapınızı unutmayın bıldırılmlerı açtığınızdan emın olun sıze adınız ıle gerı donus yapaçağız.`,
                 senderId: 'system', createdAt: serverTimestamp()
             });
             window.nav('chat');
@@ -292,13 +297,13 @@
             onSnapshot(q, (snap) => {
                 const list = document.getElementById('ticketList');
                 if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="text-center text-xs text-slate-600 mt-10">Kayıt bulunamadı.</p>' : '';
+                list.innerHTML = snap.empty ? '<p class="text-center text-xs text-slate-600 mt-10">Aktif bir talep bulunamadı.</p>' : '';
                 snap.forEach(d => {
                     const data = d.data();
-                    list.innerHTML += `<div onclick="window.tid='${d.id}'; window.chatUserName='${data.userName}'; window.nav('chat')" class="glass p-5 rounded-2xl flex justify-between items-center cursor-pointer">
+                    list.innerHTML += `<div onclick="window.tid='${d.id}'; window.chatUserName='${data.userName}'; window.nav('chat')" class="glass p-5 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-white/5 transition-all">
                         <div>
                             <p class="text-xs font-bold">${userData?.role === 'admin' ? data.userName : 'Talep #'+d.id.slice(-4)}</p>
-                            <p class="text-[10px] text-slate-500">${data.lastUpdate?.toDate().toLocaleTimeString()}</p>
+                            <p class="text-[10px] text-slate-500">${data.lastUpdate?.toDate().toLocaleTimeString('tr-TR')}</p>
                         </div>
                         <i class="fas fa-chevron-right text-slate-700 text-xs"></i>
                     </div>`;
@@ -331,7 +336,7 @@
             onSnapshot(q, (snap) => {
                 const list = document.getElementById('applyList');
                 if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="text-center text-xs py-10">Başvuru yok.</p>' : '';
+                list.innerHTML = snap.empty ? '<p class="text-center text-xs py-10 text-slate-500">Bekleyen başvuru bulunmamaktadır.</p>' : '';
                 snap.forEach(d => {
                     const data = d.data();
                     list.innerHTML += `<div class="glass p-4 rounded-2xl">
@@ -339,8 +344,8 @@
                         <p class="text-[10px] text-indigo-400 mb-2">${data.email}</p>
                         <p class="text-[10px] text-slate-500 italic mb-4">"${data.reason}"</p>
                         <div class="flex gap-2">
-                            <button onclick="window.processApply('${d.id}', 'admin')" class="flex-1 bg-emerald-600/20 text-emerald-400 text-[10px] py-2 rounded-lg border border-emerald-500/20">Onayla</button>
-                            <button onclick="window.processApply('${d.id}', 'reject')" class="flex-1 bg-red-600/20 text-red-400 text-[10px] py-2 rounded-lg border border-red-500/20">Reddet</button>
+                            <button onclick="window.processApply('${d.id}', 'admin')" class="flex-1 bg-emerald-600/20 text-emerald-400 text-[10px] py-2 rounded-lg border border-emerald-500/20 font-bold uppercase">Onayla</button>
+                            <button onclick="window.processApply('${d.id}', 'reject')" class="flex-1 bg-red-600/20 text-red-400 text-[10px] py-2 rounded-lg border border-red-500/20 font-bold uppercase">Reddet</button>
                         </div>
                     </div>`;
                 });
@@ -348,15 +353,13 @@
         }
 
         window.processApply = async (id, status) => {
-            if(!confirm("Emin misiniz?")) return;
+            if(!confirm("Bu işlem dökümanı silecektir. Devam etmek istiyor musunuz?")) return;
             try {
                 if(status === 'admin') {
                     const apRef = doc(db, "adminApplies", id);
                     const apSnap = await getDoc(apRef);
                     const email = apSnap.data().email;
-                    // Not: Normalde burada kullanıcıyı bulup rolünü güncellemek gerekir.
-                    // Bu demo sürümünde başvuruyu siliyoruz ve manuel işlem gerektiğini hatırlatıyoruz.
-                    alert(`Kullanıcı (${email}) yönetici olarak işaretlenmelidir. (Firestore'dan rolünü admin yapınız)`);
+                    alert(`Kullanıcı (${email}) yönetici olarak onaylandı. Manuel işlem gereklidir: Firestore'da bu e-postaya ait UID dökümanının rolünü 'admin' yapın.`);
                 }
                 await deleteDoc(doc(db, "adminApplies", id));
             } catch(e) { alert(e.message); }
@@ -384,7 +387,7 @@
             });
         };
 
-            init();
+        init();
     </script>
 </body>
 </html>
