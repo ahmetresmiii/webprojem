@@ -15,7 +15,6 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .admin-gradient { background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%); }
     </style>
 </head>
 <body>
@@ -48,7 +47,6 @@
             onSnapshot, 
             orderBy, 
             doc, 
-            getDoc, 
             updateDoc, 
             setDoc, 
             deleteDoc,
@@ -86,10 +84,11 @@
         };
 
         const getTemplate = () => {
-            // Yetki Kontrolü ve Yönlendirme
+            // Giriş Yapılmışsa ve Veri Gelmişse Yönlendirme
             if (currentUser && userData) {
-                if (userData.role === 'admin' && currentView.startsWith('login')) currentView = 'dashboard';
-                if (userData.role === 'user' && currentView.startsWith('login')) currentView = 'dashboard';
+                if (currentView.startsWith('login')) {
+                    currentView = 'dashboard';
+                }
             }
 
             switch(currentView) {
@@ -113,7 +112,7 @@
                     </div>`;
 
                 case 'login_admin': return `
-                    <div class="glass p-8 rounded-3xl shadow-xl border-indigo-500/30">
+                    <div class="glass p-8 rounded-3xl shadow-xl border-red-500/30">
                         <div class="flex justify-center mb-6">
                             <div class="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-400">
                                 <i class="fas fa-user-shield text-2xl"></i>
@@ -136,20 +135,22 @@
                         <button onclick="window.nav('login_user')" class="w-full mt-4 text-[10px] text-slate-500">Girişe Dön</button>
                     </div>`;
 
-                case 'dashboard': return `
+                case 'dashboard': 
+                    if (!userData) return `<div class="text-center text-slate-500 text-xs">Yükleniyor...</div>`;
+                    return `
                     <div class="flex justify-between items-center mb-6">
                         <div>
-                            <h1 class="font-bold text-lg">Selam, ${userData?.name || '...'}</h1>
-                            <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase ${userData?.role === 'admin' ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20'}">
-                                ${userData?.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
+                            <h1 class="font-bold text-lg">Merhaba, ${userData.name}</h1>
+                            <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase ${userData.role === 'admin' ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20'}">
+                                ${userData.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
                             </span>
                         </div>
-                        <button id="btnLogout" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-all">
+                        <button onclick="window.handleLogout()" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-all">
                             <i class="fas fa-power-off"></i>
                         </button>
                     </div>
 
-                    ${userData?.role === 'admin' ? `
+                    ${userData.role === 'admin' ? `
                         <div class="flex gap-2 mb-6">
                             <button onclick="window.nav('dashboard')" class="flex-1 py-3 rounded-xl text-xs font-bold ${currentView === 'dashboard' ? 'bg-indigo-600 text-white' : 'glass text-slate-400'}">Talepler</button>
                             <button onclick="window.nav('adminManage')" class="flex-1 py-3 rounded-xl text-xs font-bold glass text-slate-400">Başvurular</button>
@@ -186,17 +187,6 @@
                             <button id="btnSend" class="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-95 transition-transform"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>`;
-
-                case 'verifyEmail': return `
-                    <div class="glass p-8 rounded-3xl shadow-xl text-center">
-                        <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <i class="fas fa-envelope-open-text text-3xl"></i>
-                        </div>
-                        <h2 class="text-xl font-bold mb-2">E-posta Onayı</h2>
-                        <p class="text-slate-400 text-xs mb-8">Link gönderildi: <b>${currentUser?.email}</b><br>Lütfen kutunuzu kontrol edin.</p>
-                        <button onclick="location.reload()" class="w-full bg-indigo-600 py-4 rounded-xl mb-3 text-sm font-bold">Onayladım, Sisteme Gir</button>
-                        <button id="btnLogout" class="text-[10px] text-red-400/50 uppercase tracking-widest font-bold">Çıkış Yap</button>
-                    </div>`;
             }
         };
 
@@ -204,7 +194,6 @@
             const el = (id) => document.getElementById(id);
             if(el('btnLogin')) el('btnLogin').onclick = handleLogin;
             if(el('btnRegister')) el('btnRegister').onclick = handleRegister;
-            if(el('btnLogout')) el('btnLogout').onclick = () => signOut(auth);
             if(el('btnNewTicket')) el('btnNewTicket').onclick = handleNewTicket;
             if(el('btnSend')) el('btnSend').onclick = handleSend;
             
@@ -212,24 +201,32 @@
             if(currentView === 'chat') loadMessages();
             if(currentView === 'adminManage') loadApplies();
 
-            // Enter ile mesaj gönderme
             if(el('chatInput')) el('chatInput').onkeypress = (e) => { if(e.key === 'Enter') handleSend(); };
         };
 
         window.nav = (v) => { currentView = v; render(); };
 
+        window.handleLogout = () => {
+            signOut(auth).then(() => {
+                userData = null;
+                currentUser = null;
+                currentView = 'login_user';
+                render();
+            });
+        };
+
         window.forgotPass = async () => {
-            const email = prompt("Şifre sıfırlama linki için e-posta adresinizi girin:");
+            const email = prompt("E-posta:");
             if(!email) return;
             try {
                 await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
-                alert("Sıfırlama linki gönderildi.");
+                alert("Link gönderildi.");
             } catch(e) { alert(e.message); }
         };
 
         window.copyNotify = () => {
             const text = `(${window.chatUserName}) yanıt verilmiştir sistemden kontrol et`;
-            const dummy = document.createElement("input");
+            const dummy = document.createElement("textarea");
             document.body.appendChild(dummy);
             dummy.value = text;
             dummy.select();
@@ -244,7 +241,7 @@
             if(!email || !pass) return alert("Bilgileri girin.");
             try { 
                 await signInWithEmailAndPassword(auth, email, pass); 
-            } catch(e) { alert("Hatalı giriş denemesi."); }
+            } catch(e) { alert("Giriş yapılamadı."); }
         }
 
         async function handleRegister() {
@@ -254,23 +251,21 @@
             if(!name || !email || !pass) return alert("Alanları doldurun.");
             try {
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
-                await sendEmailVerification(res.user, actionCodeSettings);
                 await setDoc(doc(db, "users", res.user.uid), { name, email, role: 'user', createdAt: serverTimestamp() });
-                alert("Kayıt başarılı, lütfen e-posta kutunuzu onaylayın.");
-                signOut(auth);
+                alert("Kayıt başarılı.");
                 window.nav('login_user');
             } catch(e) { alert(e.message); }
         }
 
         async function handleNewTicket() {
             const tRef = await addDoc(collection(db, "tickets"), { 
-                userId: currentUser.uid, userName: userData?.name || 'Kullanıcı', 
+                userId: currentUser.uid, userName: userData.name, 
                 status: 'açık', lastUpdate: serverTimestamp() 
             });
             window.tid = tRef.id;
-            window.chatUserName = userData?.name;
+            window.chatUserName = userData.name;
             await addDoc(collection(db, "tickets", tRef.id, "messages"), {
-                text: `Sistem: Merhaba ${userData?.name}, talebiniz alındı. En kısa sürede yanıtlayacağız.`,
+                text: `Sistem: Merhaba ${userData.name}, talebiniz alındı.`,
                 senderId: 'system', createdAt: serverTimestamp()
             });
             window.nav('chat');
@@ -288,8 +283,9 @@
         }
 
         function loadTickets() {
+            if(!userData) return;
             let q;
-            if(userData?.role === 'admin') {
+            if(userData.role === 'admin') {
                 q = query(collection(db, "tickets"), orderBy("lastUpdate", "desc"));
             } else {
                 q = query(collection(db, "tickets"), where("userId", "==", currentUser.uid), orderBy("lastUpdate", "desc"));
@@ -307,7 +303,7 @@
                                 <i class="fas fa-ticket-alt"></i>
                             </div>
                             <div>
-                                <p class="text-[11px] font-bold">${userData?.role === 'admin' ? data.userName : 'Destek Talebi'}</p>
+                                <p class="text-[11px] font-bold">${userData.role === 'admin' ? data.userName : 'Destek Talebi'}</p>
                                 <p class="text-[9px] text-slate-500">${data.lastUpdate?.toDate().toLocaleString('tr-TR')}</p>
                             </div>
                         </div>
@@ -327,8 +323,6 @@
                     const m = d.data();
                     const isSystem = m.senderId === 'system';
                     const isMe = m.senderId === currentUser.uid;
-                    const isAdmin = !isMe && !isSystem && userData?.role !== 'admin'; // Karşı taraf admin ise
-                    
                     box.innerHTML += `<div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
                         <div class="max-w-[80%] p-3 rounded-2xl text-[11px] ${isSystem ? 'bg-white/5 text-slate-500 border border-white/5' : isMe ? 'bg-indigo-600 text-white' : 'bg-white/10 text-slate-300'}">
                             ${m.text}
@@ -348,10 +342,7 @@
                 snap.forEach(d => {
                     const data = d.data();
                     list.innerHTML += `<div class="glass p-4 rounded-2xl">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-xs font-bold">${data.name}</p>
-                            <span class="text-[8px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded uppercase font-bold">Beklemede</span>
-                        </div>
+                        <p class="text-xs font-bold mb-2">${data.name}</p>
                         <p class="text-[9px] text-slate-500 italic mb-4">"${data.reason}"</p>
                         <div class="flex gap-2">
                             <button onclick="window.processApply('${d.id}', 'admin')" class="flex-1 bg-emerald-600/20 text-emerald-400 text-[9px] py-2 rounded-lg font-bold">ONAYLA</button>
@@ -365,45 +356,30 @@
         window.processApply = async (id, status) => {
             if(!confirm("İşlem yapılsın mı?")) return;
             try {
-                if(status === 'admin') alert("Firestore'da bu kullanıcı dökümanının 'role' alanını manuel olarak 'admin' yapınız.");
+                if(status === 'admin') alert("Firestore'da role: 'admin' olarak güncelleyin.");
                 await deleteDoc(doc(db, "adminApplies", id));
             } catch(e) { alert(e.message); }
         };
 
         const init = async () => {
-            // URL İşlemleri (Sıfırlama vs)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('oobCode') && urlParams.get('mode') === 'resetPassword') {
-                const pass = prompt("Yeni şifreniz:");
-                if(pass) {
-                    try {
-                        await confirmPasswordReset(auth, urlParams.get('oobCode'), pass);
-                        alert("Şifre güncellendi.");
-                        window.history.replaceState({}, "", window.location.origin + window.location.pathname);
-                    } catch(e) { alert(e.message); }
-                }
-            }
-
             onAuthStateChanged(auth, async (user) => {
                 currentUser = user;
                 if(user) {
-                    // Kullanıcı verilerini anlık dinleme (Real-time Role Check)
                     onSnapshot(doc(db, "users", user.uid), (uDoc) => {
                         if (uDoc.exists()) {
                             userData = uDoc.data();
-                            if (userData.role === 'admin') {
-                                // Admin ise direkt admin ekranları
-                                if(currentView.startsWith('login')) currentView = 'dashboard';
-                            }
                             render();
+                        } else {
+                            // Veri yoksa hata verme, bekle
+                            console.log("Kullanıcı verisi henüz oluşmadı.");
                         }
                     });
                 } else {
                     userData = null;
                     render();
                 }
-                const loader = document.getElementById('loader');
-                if(loader) loader.classList.add('hidden');
+                const l = document.getElementById('loader');
+                if(l) l.classList.add('hidden');
             });
         };
 
