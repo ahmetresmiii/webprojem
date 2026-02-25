@@ -225,19 +225,24 @@
         };
 
         async function handleLogin() {
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('pass').value;
             if(!email || !pass) return alert("Lütfen alanları doldurun.");
             try { 
                 await signInWithEmailAndPassword(auth, email, pass); 
             } catch(e) { 
-                alert("Giriş Başarısız: E-posta veya şifre yanlış."); 
+                console.error("Giriş Hatası:", e.code);
+                if (e.code === 'auth/invalid-credential') {
+                    alert("Giriş Başarısız: E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.");
+                } else {
+                    alert("Bir hata oluştu: " + e.message);
+                }
             }
         }
 
         async function handleRegister() {
             const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
+            const email = document.getElementById('regEmail').value.trim();
             const pass = document.getElementById('regPass').value;
             try {
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
@@ -251,7 +256,7 @@
 
         async function handleAdminApply() {
             const name = document.getElementById('apName').value;
-            const email = document.getElementById('apEmail').value;
+            const email = document.getElementById('apEmail').value.trim();
             const reason = document.getElementById('apReason').value;
             if(!name || !email || !reason) return alert("Tüm alanları doldurun.");
             try {
