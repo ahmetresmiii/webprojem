@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Destek Paneli | Canli Mesajlasma</title>
+    <title>Destek Paneli | Canlı Mesajlaşma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <style>
@@ -28,7 +28,7 @@
     <div id="app" class="max-w-2xl mx-auto">
         <div id="loading" class="flex flex-col items-center justify-center h-[80vh]">
             <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-white mb-4"></div>
-            <p>Sistem Hazirlaniyor...</p>
+            <p>Sistem Hazırlanıyor...</p>
         </div>
     </div>
 
@@ -69,13 +69,13 @@
                                 <i class="fas fa-headset text-5xl text-yellow-300"></i>
                             </div>
                             <h1 class="text-3xl font-extrabold mb-2 text-white">Destek Sistemi</h1>
-                            <p class="text-white/70 mb-8">Hizli ve renkli ��z�m merkezi!</p>
+                            <p class="text-white/70 mb-8">Hızlı ve renkli çözüm merkezi!</p>
                             <div class="grid gap-4">
-                                <button id="btn-new" class="bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-4 rounded-2xl transition-all shadow-lg">Yeni Destek Talebi A�</button>
+                                <button id="btn-new" class="bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-4 rounded-2xl transition-all shadow-lg">Yeni Destek Talebi Aç</button>
                                 <button id="btn-query" class="bg-indigo-400 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg">Taleplerimi Sorgula</button>
                             </div>
                             <button id="btn-admin-entry" class="mt-8 text-white/50 hover:text-white text-sm transition-colors">
-                                <i class="fas fa-lock mr-2"></i>Y�netici Girisi
+                                <i class="fas fa-lock mr-2"></i>Yönetici Girişi
                             </button>
                         </div>`;
                     break;
@@ -87,7 +87,7 @@
                             <div class="space-y-4">
                                 <label class="block text-sm text-white/70 ml-1">4 Haneli PIN Belirleyin</label>
                                 <input id="pinInput" type="password" maxlength="4" placeholder="****" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl outline-none text-center text-2xl tracking-[0.5em] focus:border-yellow-400">
-                                <button id="btn-create-exec" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg">Talebi Baslat</button>
+                                <button id="btn-create-exec" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg">Talebi Başlat</button>
                             </div>
                         </div>`;
                     break;
@@ -120,7 +120,7 @@
                             </div>
                             <div id="msgBox" class="flex-1 overflow-y-auto p-5 space-y-4 chat-container"></div>
                             <div class="p-4 bg-black/20 flex gap-2">
-                                <input id="chatInput" type="text" placeholder="Mesajinizi buraya yazin..." class="flex-1 bg-white/10 border border-white/20 p-4 rounded-2xl outline-none focus:bg-white/20">
+                                <input id="chatInput" type="text" placeholder="Mesajınızı buraya yazın..." class="flex-1 bg-white/10 border border-white/20 p-4 rounded-2xl outline-none focus:bg-white/20">
                                 <button id="btn-send" class="bg-yellow-400 text-purple-900 w-14 h-14 rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl">
                                     <i class="fas fa-paper-plane text-xl"></i>
                                 </button>
@@ -130,10 +130,10 @@
                 case 'adminLogin':
                     content.innerHTML = `
                         <div class="glass rounded-[2rem] p-8 text-center shadow-2xl">
-                            <button id="btn-back" class="mb-4 text-white/70 hover:text-white block"><i class="fas fa-chevron-left mr-2"></i>Iptal</button>
-                            <h2 class="text-2xl font-bold mb-6">Admin Girisi</h2>
-                            <input id="adminPass" type="password" placeholder="Y�netici Sifresi" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl mb-4 outline-none text-center">
-                            <button id="btn-admin-login-exec" class="w-full bg-purple-600 py-4 rounded-2xl font-bold shadow-lg">Sisteme Giris Yap</button>
+                            <button id="btn-back" class="mb-4 text-white/70 hover:text-white block"><i class="fas fa-chevron-left mr-2"></i>İptal</button>
+                            <h2 class="text-2xl font-bold mb-6">Admin Girişi</h2>
+                            <input id="adminPass" type="password" placeholder="Yönetici Şifresi" class="w-full bg-white/10 border border-white/20 p-4 rounded-2xl mb-4 outline-none text-center">
+                            <button id="btn-admin-login-exec" class="w-full bg-purple-600 py-4 rounded-2xl font-bold shadow-lg">Sisteme Giriş Yap</button>
                         </div>`;
                     break;
                 case 'adminPanel':
@@ -141,12 +141,12 @@
                         <div class="glass rounded-[2rem] p-6 h-[90vh] flex flex-col shadow-2xl">
                             <div class="flex justify-between items-center mb-6">
                                 <h2 class="text-xl font-bold"><i class="fas fa-shield-alt mr-2 text-yellow-300"></i>Panel</h2>
-                                <button id="btn-logout" class="bg-red-500/20 hover:bg-red-500 px-4 py-2 rounded-xl text-xs transition-all">�ikis</button>
+                                <button id="btn-logout" class="bg-red-500/20 hover:bg-red-500 px-4 py-2 rounded-xl text-xs transition-all">Çıkış</button>
                             </div>
                             <div class="flex gap-2 mb-6">
                                 <button id="filter-all" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'all' ? 'bg-white text-purple-700' : 'bg-white/10'}">Hepsi</button>
                                 <button id="filter-waiting" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'waiting' ? 'bg-white text-purple-700' : 'bg-white/10'}">Bekleyen</button>
-                                <button id="filter-deleted" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'deleted' ? 'bg-white text-purple-700' : 'bg-white/10'}">Arsiv</button>
+                                <button id="filter-deleted" class="flex-1 py-2 rounded-xl text-xs font-bold ${state.adminFilter === 'deleted' ? 'bg-white text-purple-700' : 'bg-white/10'}">Arşiv</button>
                             </div>
                             <div id="adminTickets" class="flex-1 overflow-y-auto space-y-3"></div>
                         </div>`;
@@ -193,7 +193,7 @@
 
         async function handleCreateTicket() {
             const pin = document.getElementById('pinInput').value;
-            if (pin.length !== 4) return alert("PIN 4 haneli olmalidir!");
+            if (pin.length !== 4) return alert("PIN 4 haneli olmalıdır!");
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             try {
                 const docRef = await addDoc(collection(db, "tickets"), {
@@ -202,7 +202,7 @@
                     lastUpdate: serverTimestamp()
                 });
                 await addDoc(collection(db, "tickets", docRef.id, "messages"), {
-                    text: "Merhaba! Talebiniz alindi. En kisa s�rede yanitlayacagiz. Sifrenizi unutmayin!",
+                    text: "Merhaba! Talebiniz alındı. En kısa sürede yanıtlayacağız. Şifrenizi unutmayın!",
                     sender: 'system', createdAt: serverTimestamp()
                 });
                 state.currentTicket = { id: docRef.id, code };
@@ -219,11 +219,11 @@
             const snap = await getDocs(q);
             if (!snap.empty) {
                 const tDoc = snap.docs[0];
-                if(tDoc.data().status === 'deleted') return alert("Bu talep arsivlenmis veya silinmis.");
+                if(tDoc.data().status === 'deleted') return alert("Bu talep arşivlenmiş veya silinmiş.");
                 state.currentTicket = { id: tDoc.id, code: tDoc.data().code };
                 state.view = 'chat';
                 render();
-            } else { alert("Hatali Kod veya PIN!"); }
+            } else { alert("Hatalı Kod veya PIN!"); }
         }
 
         function handleAdminLogin() {
@@ -231,7 +231,7 @@
                 state.isAdmin = true;
                 state.view = 'adminPanel';
                 render();
-            } else { alert("Sifre Yanlis!"); }
+            } else { alert("Şifre Yanlış!"); }
         }
 
         async function sendMessage() {
@@ -302,7 +302,7 @@
                         <div class="flex justify-between items-start mb-2">
                             <span class="font-bold text-yellow-300">#${t.code}</span>
                             <span class="text-[10px] px-2 py-1 rounded ${t.status === 'waiting' ? 'bg-red-500' : (t.status === 'deleted' ? 'bg-gray-600' : 'bg-emerald-500')} font-bold">
-                                ${t.status === 'waiting' ? 'BEKLEYEN' : (t.status === 'deleted' ? 'SILINDI/ARSIV' : 'OKUNDU')}
+                                ${t.status === 'waiting' ? 'BEKLEYEN' : (t.status === 'deleted' ? 'SİLİNDİ/ARŞİV' : 'OKUNDU')}
                             </span>
                         </div>
                         <div class="flex gap-2">
@@ -320,14 +320,14 @@
         }
 
         window.cpNotify = (code) => {
-            const text = `KOD SAHIBI: #${code} TALEBINIZ SONU�LANMISTIR. SIFRENIZ ILE BAKABILIRSINIZ.`;
+            const text = `KOD SAHIBI: #${code} TALEBINIZ SONUÇLANMIŞTIR. ŞİFRENİZ İLE BAKABİLİRSİNİZ.`;
             const el = document.createElement('textarea'); el.value = text;
             document.body.appendChild(el); el.select(); document.execCommand('copy');
-            document.body.removeChild(el); alert("Kopyalandi!");
+            document.body.removeChild(el); alert("Kopyalandı!");
         };
 
         window.delT = async (id) => { 
-            if(confirm("Talebi silmek yerine arsive/silinenler klas�r�ne tasimak istiyor musunuz?")) {
+            if(confirm("Talebi silmek yerine arşive/silinenler klasörüne taşımak istiyor musunuz?")) {
                 try {
                     await updateDoc(doc(db, "tickets", id), { status: 'deleted' });
                 } catch(e) { 
