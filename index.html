@@ -67,28 +67,32 @@
         let userData = null;
         let currentView = 'login';
 
+        // GitHub Pages tam yolu
         const actionCodeSettings = {
             url: "https://ahmetresmiii.github.io/webprojem/",
             handleCodeInApp: true
         };
 
-        // URL'deki Firebase işlem kodlarını (doğrulama gibi) kontrol et
+        // URL İşlemlerini Yönet (Doğrulama Kodlarını Yakala)
         const handleUrlActions = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
             const actionCode = urlParams.get('oobCode');
 
-            if (mode === 'verifyEmail' && actionCode) {
+            if (actionCode) {
                 const loaderText = document.getElementById('loaderText');
-                if(loaderText) loaderText.innerText = "E-posta doğrulanıyor...";
-                try {
-                    await applyActionCode(auth, actionCode);
-                    alert("E-posta adresiniz başarıyla doğrulandı! Şimdi giriş yapabilirsiniz.");
-                    // Parametreleri temizle ve ana sayfaya dön
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (error) {
-                    alert("Doğrulama hatası: " + error.message);
+                if (mode === 'verifyEmail') {
+                    if(loaderText) loaderText.innerText = "E-posta hesabınız onaylanıyor...";
+                    try {
+                        await applyActionCode(auth, actionCode);
+                        alert("Tebrikler! Hesabınız onaylandı. Giriş yapabilirsiniz.");
+                    } catch (error) {
+                        console.error("Doğrulama hatası:", error);
+                        alert("Onay kodu geçersiz veya süresi dolmuş.");
+                    }
                 }
+                // URL'yi temizle
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         };
 
@@ -98,7 +102,7 @@
         };
 
         const getTemplate = () => {
-            if (!currentUser && !['login', 'register', 'adminApply', 'verifyEmail'].includes(currentView)) currentView = 'login';
+            if (!currentUser && !['login', 'register', 'verifyEmail'].includes(currentView)) currentView = 'login';
 
             switch(currentView) {
                 case 'login': return `
@@ -107,9 +111,8 @@
                         <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500">
                         <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500">
                         <button id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold transition-all">Giriş</button>
-                        <div class="mt-6 flex justify-between text-xs text-slate-400">
-                            <button onclick="window.nav('register')">Hesap Oluştur</button>
-                            <button onclick="window.nav('adminApply')">Yönetici Başvurusu</button>
+                        <div class="mt-6 text-center text-xs text-slate-400">
+                            Hesabın yok mu? <button onclick="window.nav('register')" class="text-indigo-400 font-bold">Kaydol</button>
                         </div>
                     </div>`;
                 
@@ -120,42 +123,43 @@
                         <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10">
                         <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10">
                         <button id="btnRegister" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold transition-all">Kaydı Tamamla</button>
-                        <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Vazgeç</button>
+                        <button onclick="window.nav('login')" class="w-full mt-4 text-xs text-slate-500">Girişe Dön</button>
                     </div>`;
 
                 case 'verifyEmail': return `
                     <div class="glass p-8 rounded-3xl shadow-xl text-center">
-                        <div class="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <i class="fas fa-envelope-open-text text-2xl"></i>
+                        <div class="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-paper-plane text-2xl"></i>
                         </div>
-                        <h2 class="text-xl font-bold mb-2">E-posta Doğrulanmadı</h2>
-                        <p class="text-slate-400 text-sm mb-6">Lütfen <b>${currentUser?.email}</b> adresindeki linke tıklayarak hesabınızı onaylayın.</p>
-                        <button onclick="location.reload()" class="w-full bg-white/10 hover:bg-white/20 py-3 rounded-xl mb-3 text-sm font-semibold transition-all">Doğruladım, Yenile</button>
-                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline block mx-auto">Yeni link gönder</button>
-                        <button id="btnLogout" class="block w-full mt-8 text-xs text-red-400/50">Çıkış Yap</button>
+                        <h2 class="text-xl font-bold mb-2">Onay Bekleniyor</h2>
+                        <p class="text-slate-400 text-sm mb-6"><b>${currentUser?.email}</b> adresine bir onay linki gönderdik. Lütfen kutunuzu kontrol edin.</p>
+                        <button onclick="location.reload()" class="w-full bg-white/10 hover:bg-white/20 py-3 rounded-xl mb-3 text-sm font-semibold transition-all">Onayladım, Devam Et</button>
+                        <button onclick="window.resendEmail()" class="text-xs text-indigo-400 underline block mx-auto mb-4">Link gelmedi mi? Tekrar gönder</button>
+                        <button id="btnLogout" class="text-xs text-red-400/50">Başka bir hesapla gir</button>
                     </div>`;
 
                 case 'dashboard': return `
                     <div class="flex justify-between items-center mb-8">
                         <div>
-                            <h1 class="font-bold">Selam, ${userData?.name?.split(' ')[0] || 'Kullanıcı'}</h1>
-                            <p class="text-[10px] text-slate-500">Destek Panelin</p>
+                            <h1 class="font-bold">Merhaba, ${userData?.name || 'Kullanıcı'}</h1>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">Kontrol Paneli</p>
                         </div>
-                        <button id="btnLogout" class="text-slate-500 hover:text-red-400"><i class="fas fa-power-off"></i></button>
+                        <button id="btnLogout" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-red-400"><i class="fas fa-sign-out-alt"></i></button>
                     </div>
-                    <button id="btnNewTicket" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold mb-6">+ Yeni Destek Talebi</button>
+                    <button id="btnNewTicket" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold mb-6 shadow-lg shadow-indigo-500/20">Yeni Destek Talebi Aç</button>
                     <div id="ticketList" class="space-y-3"></div>`;
 
                 case 'chat': return `
                     <div class="glass rounded-3xl flex flex-col h-[85vh]">
                         <div class="p-4 border-b border-white/10 flex justify-between items-center">
-                            <button onclick="window.nav('dashboard')" class="text-slate-500"><i class="fas fa-chevron-left"></i></button>
-                            <span class="text-xs font-bold text-indigo-400">TALEP #${window.tid?.slice(-4)}</span>
+                            <button onclick="window.nav('dashboard')" class="text-slate-500 w-8 h-8 flex items-center justify-center"><i class="fas fa-chevron-left"></i></button>
+                            <span class="text-xs font-bold text-indigo-400">TALEP: #${window.tid?.slice(-4).toUpperCase()}</span>
+                            <div class="w-8"></div>
                         </div>
-                        <div id="msgBox" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+                        <div id="msgBox" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm"></div>
                         <div class="p-4 bg-white/5 flex gap-2">
-                            <input id="chatInput" type="text" placeholder="Mesaj..." class="flex-1 bg-white/10 p-3 rounded-xl outline-none text-sm">
-                            <button id="btnSend" class="bg-indigo-600 w-10 h-10 rounded-xl"><i class="fas fa-paper-plane text-xs"></i></button>
+                            <input id="chatInput" type="text" placeholder="Mesajınızı yazın..." class="flex-1 bg-white/10 p-4 rounded-2xl outline-none border border-white/5 focus:border-indigo-500">
+                            <button id="btnSend" class="bg-indigo-600 w-12 h-12 rounded-2xl shadow-lg shadow-indigo-500/20"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>`;
             }
@@ -179,17 +183,19 @@
             if(!auth.currentUser) return;
             try {
                 await sendEmailVerification(auth.currentUser, actionCodeSettings);
-                alert("Doğrulama maili tekrar gönderildi.");
-            } catch(e) { alert("Hata: " + e.message); }
+                alert("Doğrulama e-postası tekrar gönderildi. Lütfen spam klasörünü de kontrol edin.");
+            } catch(e) { alert("Bir sorun oluştu: " + e.message); }
         };
 
         async function handleLogin() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            if(!email || !pass) return alert("Boş alan bırakmayın.");
+            if(!email || !pass) return alert("Lütfen bilgileri doldurun.");
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-            } catch(e) { alert("Giriş Hatası: " + e.message); }
+            } catch(e) { 
+                alert("Hatalı giriş: E-posta veya şifre yanlış."); 
+            }
         }
 
         async function handleRegister() {
@@ -198,10 +204,10 @@
             const pass = document.getElementById('regPass').value;
             const btn = document.getElementById('btnRegister');
             
-            if(!name || !email || pass.length < 6) return alert("Eksik bilgi veya kısa şifre.");
+            if(!name || !email || pass.length < 6) return alert("Bilgileri kontrol edin (Şifre min. 6 karakter).");
             
             btn.disabled = true;
-            btn.innerText = "İşleniyor...";
+            btn.innerText = "Hesap Oluşturuluyor...";
             
             try {
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
@@ -209,13 +215,13 @@
                 await setDoc(doc(db, "users", res.user.uid), { 
                     name, email, role: 'user', createdAt: serverTimestamp() 
                 });
-                alert("Kayıt başarılı! Mailinizi doğruladıktan sonra panele erişebilirsiniz.");
+                alert("Hesabınız oluşturuldu! Lütfen e-postanıza gönderilen onay linkine tıklayın.");
                 signOut(auth);
                 window.nav('login');
             } catch(e) { 
                 btn.disabled = false;
                 btn.innerText = "Kaydı Tamamla";
-                alert(e.code === 'auth/email-already-in-use' ? "Bu mail zaten kayıtlı." : "Hata: " + e.message);
+                alert(e.message);
             }
         }
 
@@ -231,11 +237,12 @@
         async function handleSend() {
             const input = document.getElementById('chatInput');
             if(!input.value.trim()) return;
+            const msg = input.value;
+            input.value = '';
             await addDoc(collection(db, "tickets", window.tid, "messages"), {
-                text: input.value, senderId: currentUser.uid, createdAt: serverTimestamp()
+                text: msg, senderId: currentUser.uid, createdAt: serverTimestamp()
             });
             await updateDoc(doc(db, "tickets", window.tid), { lastUpdate: serverTimestamp() });
-            input.value = '';
         }
 
         function loadTickets() {
@@ -243,14 +250,18 @@
             onSnapshot(q, (snap) => {
                 const list = document.getElementById('ticketList');
                 if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="text-center text-slate-500 text-xs py-4">Talebiniz yok.</p>' : '';
+                list.innerHTML = snap.empty ? '<div class="text-center py-10 text-slate-600"><i class="fas fa-inbox block text-3xl mb-2"></i><p class="text-xs">Henüz bir destek talebiniz yok.</p></div>' : '';
                 snap.forEach(d => {
-                    list.innerHTML += `<div onclick="window.tid='${d.id}'; window.nav('chat')" class="glass p-4 rounded-xl flex justify-between items-center cursor-pointer">
-                        <span class="text-xs font-bold text-slate-400">#${d.id.slice(-6)}</span>
-                        <span class="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">AÇIK</span>
+                    const data = d.data();
+                    list.innerHTML += `<div onclick="window.tid='${d.id}'; window.nav('chat')" class="glass p-5 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-white/5 transition-all">
+                        <div>
+                            <p class="text-xs font-bold text-slate-300">Talep #${d.id.slice(-6).toUpperCase()}</p>
+                            <p class="text-[10px] text-slate-500">Son güncelleme: ${data.lastUpdate?.toDate().toLocaleDateString('tr-TR') || 'Şimdi'}</p>
+                        </div>
+                        <span class="text-[10px] font-extrabold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full uppercase tracking-tighter">Aktif</span>
                     </div>`;
                 });
-            }, (err) => console.error("Ticket list error:", err));
+            });
         }
 
         function loadMessages() {
@@ -263,35 +274,37 @@
                     const m = d.data();
                     const isMe = m.senderId === currentUser.uid;
                     box.innerHTML += `<div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-indigo-600' : 'bg-white/10'} text-xs">${m.text}</div>
+                        <div class="max-w-[80%] p-4 rounded-2xl ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white/10 text-slate-200 rounded-tl-none'} shadow-sm">
+                            ${m.text}
+                        </div>
                     </div>`;
                 });
                 box.scrollTop = box.scrollHeight;
-            }, (err) => console.error("Message load error:", err));
+            });
         }
 
         // Başlangıçta URL aksiyonlarını kontrol et
-        handleUrlActions();
-
-        onAuthStateChanged(auth, async (user) => {
-            currentUser = user;
-            const loader = document.getElementById('loader');
-            
-            if(user) {
-                await user.reload(); 
-                if(!auth.currentUser.emailVerified) {
-                    currentView = 'verifyEmail';
+        handleUrlActions().then(() => {
+            onAuthStateChanged(auth, async (user) => {
+                currentUser = user;
+                const loader = document.getElementById('loader');
+                
+                if(user) {
+                    await user.reload(); 
+                    if(!auth.currentUser.emailVerified) {
+                        currentView = 'verifyEmail';
+                    } else {
+                        const uDoc = await getDoc(doc(db, "users", user.uid));
+                        userData = uDoc.exists() ? uDoc.data() : null;
+                        currentView = 'dashboard';
+                    }
                 } else {
-                    const uDoc = await getDoc(doc(db, "users", user.uid));
-                    userData = uDoc.exists() ? uDoc.data() : null;
-                    currentView = 'dashboard';
+                    currentView = 'login';
                 }
-            } else {
-                currentView = 'login';
-            }
-            
-            if (loader) loader.classList.add('hidden');
-            render();
+                
+                if (loader) loader.classList.add('hidden');
+                render();
+            });
         });
     </script>
 </body>
