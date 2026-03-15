@@ -36,10 +36,12 @@
     <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
     <audio id="snd-error" src="https://assets.mixkit.co/active_storage/sfx/253/253-preview.mp3"></audio>
 
+    <!-- Auth Layer -->
     <div id="auth-layer" class="fixed inset-0 bg-slate-950 z-[999] flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-[3rem] p-10 text-center relative overflow-hidden">
             <h1 class="text-4xl font-black italic mb-2 tracking-tighter text-white">LINGUIX<span class="text-green-500">.</span></h1>
-            <div class="space-y-4 mt-8 relative z-10">
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-8">160 Bölümlük Linux Serüveni</p>
+            <div class="space-y-4 relative z-10">
                 <button id="btn-google" class="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-4 rounded-2xl font-black hover:bg-slate-100 transition-all">
                     Google Hesabı ile Gir
                 </button>
@@ -51,6 +53,7 @@
         </div>
     </div>
 
+    <!-- Main App UI -->
     <div id="main-app" class="hidden h-screen flex flex-col">
         <header class="h-20 glass-dark border-b border-white/5 px-6 md:px-10 flex items-center justify-between z-50">
             <span class="text-2xl font-black italic tracking-tighter text-white">LINGUIX<span class="text-green-500">.</span></span>
@@ -58,19 +61,18 @@
                 <div class="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-2 rounded-2xl font-black text-sm">
                     <span id="xp-display">0</span> XP
                 </div>
-                <button id="btn-logout" class="text-slate-500 hover:text-red-400 transition-all font-bold text-xs uppercase tracking-widest">
-                    Çıkış
-                </button>
+                <button id="btn-logout" class="text-slate-500 hover:text-red-400 transition-all font-bold text-xs uppercase tracking-widest">Çıkış</button>
             </div>
         </header>
 
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <!-- Left Side: Content -->
             <div class="w-full lg:w-[50%] p-6 md:p-12 lg:p-16 overflow-y-auto bg-slate-900 border-r border-white/5">
                 <div class="max-w-xl mx-auto space-y-8">
                     <div class="flex items-center gap-4">
                         <span id="lesson-badge" class="px-4 py-1.5 rounded-xl bg-green-500 text-slate-950 text-xs font-black uppercase tracking-widest">Ders 1</span>
                         <div class="flex-1 h-2 bg-slate-800 rounded-full">
-                            <div id="progress-bar" class="h-full bg-green-500 transition-all duration-700" style="width: 5%"></div>
+                            <div id="progress-bar" class="h-full bg-green-500 transition-all duration-700" style="width: 0.6%"></div>
                         </div>
                     </div>
                     <h2 id="lesson-title" class="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter"></h2>
@@ -93,6 +95,7 @@
                 </div>
             </div>
 
+            <!-- Right Side: Terminal -->
             <div class="w-full lg:w-[50%] p-6 md:p-12 flex flex-col justify-center bg-slate-950">
                 <div class="w-full h-full max-h-[600px] flex flex-col terminal-container overflow-hidden border border-white/5">
                     <div class="h-10 bg-slate-900/80 flex items-center px-6 border-b border-white/5">
@@ -104,11 +107,12 @@
         </div>
     </div>
 
+    <!-- Success Modal -->
     <div id="success-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[1000] hidden items-center justify-center p-6">
         <div class="bg-slate-900 rounded-[4rem] p-12 max-w-sm w-full text-center border border-white/10 shadow-2xl">
-            <h2 class="text-4xl font-black text-white mb-3 italic">BAŞARILI!</h2>
-            <p class="text-slate-400 font-bold mb-10 leading-relaxed">Sistem bilgileri doğrulandı. Bir sonraki aşamaya geçebilirsin.</p>
-            <button id="btn-next" class="w-full bg-white text-slate-950 font-black py-6 rounded-[2rem] hover:bg-green-500 transition-all uppercase tracking-widest text-sm">İLERLE</button>
+            <h2 class="text-4xl font-black text-white mb-3 italic">MÜKEMMEL!</h2>
+            <p class="text-slate-400 font-bold mb-10 leading-relaxed">Komutu başarıyla çalıştırdın. Bir sonraki derse geçmeye hazırsın.</p>
+            <button id="btn-next" class="w-full bg-white text-slate-950 font-black py-6 rounded-[2rem] hover:bg-green-500 transition-all uppercase tracking-widest text-sm">SONRAKİ BÖLÜM</button>
         </div>
     </div>
 
@@ -132,9 +136,16 @@
         const db = getFirestore(app);
         const APP_VERSION = "linguix-master-v3";
 
+        // Genişletilebilir Ders Listesi (160 Bölüme Tamamlanacak Yapı)
         const lessons = [
-            { id: 1, title: "Neredeyim Ben?", text: "Linux terminalinde kaybolduğunda 'pwd' (Print Working Directory) imdadına yetişir.", goal: "Terminale 'pwd' yazıp Enter'la.", cmd: "pwd", response: "/home/uzman/linguix" },
-            { id: 2, title: "İçerikleri Gör", text: "Dosyaları listelemek için 'ls' komutunu kullanırız.", goal: "Dosyaları listelemek için 'ls' komutunu çalıştır.", cmd: "ls", response: "belgeler/  notlar.txt  projem/  ayarlar.cfg" }
+            { id: 1, title: "Neredeyim Ben?", text: "Linux terminalinde 'pwd' komutu o an tam olarak hangi dizinde olduğunuzu gösterir.", goal: "Terminalde 'pwd' yazıp Enter'a bas.", cmd: "pwd", response: "/home/uzman/linguix" },
+            { id: 2, title: "Dosyaları Listele", text: "Bulunduğunuz yerdeki her şeyi 'ls' komutuyla görebilirsiniz.", goal: "Dosyaları görmek için 'ls' yaz.", cmd: "ls", response: "belgeler/  notlar.txt  projem/  ayarlar.cfg" },
+            { id: 3, title: "Kimim Ben?", text: "Sistemde hangi kullanıcı adıyla kayıtlı olduğunuzu 'whoami' ile öğrenirsiniz.", goal: "Kullanıcı adını öğrenmek için 'whoami' yaz.", cmd: "whoami", response: "uzman" },
+            { id: 4, title: "Ekranı Temizle", text: "Terminal çok dolduğunda 'clear' komutu her şeyi temizleyip en başa döndürür.", goal: "Ekranı temizlemek için 'clear' yaz.", cmd: "clear", response: "" },
+            { id: 5, title: "Dizin Oluştur", text: "Yeni bir klasör açmak için 'mkdir' (make directory) komutu kullanılır.", goal: "Yeni bir klasör açmak için 'mkdir yeni_klasor' yaz.", cmd: "mkdir yeni_klasor", response: "Klasör başarıyla oluşturuldu." },
+            { id: 6, title: "Dizine Gir", text: "Bir klasörün içine girmek için 'cd' (change directory) komutunu kullanırız.", goal: "Oluşturduğun klasöre girmek için 'cd yeni_klasor' yaz.", cmd: "cd yeni_klasor", response: "Şu an: /home/uzman/linguix/yeni_klasor" },
+            { id: 7, title: "Geri Dön", text: "Bir üst dizine çıkmak için 'cd ..' komutunu kullanırız.", goal: "Geri dönmek için 'cd ..' yaz.", cmd: "cd ..", response: "Şu an: /home/uzman/linguix" }
+            // Buraya 160. bölüme kadar yeni objeler eklenecek
         ];
 
         let state = { xp: 0, level: 1 };
@@ -164,7 +175,10 @@
             document.getElementById('lesson-text').innerText = current.text;
             document.getElementById('lesson-goal').innerText = current.goal;
             document.getElementById('xp-display').innerText = state.xp;
-            document.getElementById('progress-bar').style.width = `${(state.level / lessons.length) * 100}%`;
+            // 160 bölüm üzerinden ilerleme çubuğu
+            const progress = (state.level / 160) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            
             document.getElementById('panel-info').classList.remove('hidden');
             document.getElementById('panel-task').classList.add('hidden');
             document.getElementById('error-alert').classList.add('hidden');
@@ -180,11 +194,11 @@
             xterm.open(document.getElementById('terminal'));
             
             xterm.onData(data => {
-                // Daha kapsamlı Enter yakalama (\r, \n veya \r\n)
-                if (data.charCodeAt(0) === 13 || data.charCodeAt(0) === 10) {
+                const charCode = data.charCodeAt(0);
+                if (charCode === 13 || charCode === 10) {
                     handleCmd(inputBuffer.trim());
                     inputBuffer = "";
-                } else if (data === '\u007F') { // Backspace
+                } else if (data === '\u007F') {
                     if (inputBuffer.length > 0) {
                         inputBuffer = inputBuffer.slice(0, -1);
                         xterm.write('\b \b');
@@ -206,16 +220,19 @@
             xterm.write('\r\n');
             if (!raw) { prompt(); return; }
 
-            if (raw.toLowerCase() === current.cmd) {
+            // Komutu kontrol et
+            if (raw.toLowerCase() === current.cmd.toLowerCase()) {
                 document.getElementById('snd-success').play().catch(()=>{});
-                xterm.writeln(current.response);
+                if(current.cmd === "clear") xterm.clear();
+                else xterm.writeln(current.response);
+                
                 setTimeout(() => {
                     document.getElementById('success-modal').style.display = 'flex';
                 }, 400);
             } else {
                 document.getElementById('snd-error').play().catch(()=>{});
-                xterm.writeln(`\x1b[31mHATA: '${raw}' komutu yanlıs.\x1b[0m`);
-                document.getElementById('error-text').innerText = `'${current.cmd}' yazman gerekiyor.`;
+                xterm.writeln(`\x1b[31mHATA: '${raw}' gecersiz bir komut veya bu dersin hedefi degil.\x1b[0m`);
+                document.getElementById('error-text').innerText = `Lütfen şu komutu dene: '${current.cmd}'`;
                 document.getElementById('error-alert').classList.remove('hidden');
                 prompt();
             }
@@ -233,9 +250,14 @@
         };
 
         document.getElementById('btn-next').onclick = async () => {
-            if(state.level < lessons.length) state.level++;
-            state.xp += 25;
-            await setDoc(doc(db, 'artifacts', APP_VERSION, 'users', auth.currentUser.uid, 'profile', 'progress'), state);
+            if(state.level < lessons.length) {
+                state.level++;
+                state.xp += 50;
+                await setDoc(doc(db, 'artifacts', APP_VERSION, 'users', auth.currentUser.uid, 'profile', 'progress'), state);
+            } else {
+                // Eğer listenin sonuna gelindiyse (160 bölüm tamamlandığında)
+                alert("Tebrikler! Tüm bölümleri tamamladın.");
+            }
             document.getElementById('success-modal').style.display = 'none';
             renderUI();
             if (xterm) { xterm.clear(); prompt(); xterm.focus(); }
