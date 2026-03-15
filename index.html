@@ -1,281 +1,390 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linguix Pro - 160 Derslik Linux Rehberi</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css" />
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
-        body { font-family: 'Nunito', sans-serif; }
-        .terminal-container { height: 350px; }
-        .progress-bar { transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .lesson-node { transition: all 0.3s ease; }
-    </style>
-</head>
-<body class="bg-[#f7f7f7] text-[#4b4b4b] min-h-screen">
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged, 
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signInAnonymously
+} from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import { 
+  Trophy, 
+  Flame, 
+  Gem, 
+  LogOut, 
+  Mail, 
+  Lock, 
+  UserPlus, 
+  ChevronRight, 
+  AlertCircle,
+  Terminal as TerminalIcon,
+  BookOpen,
+  Info,
+  CheckCircle2,
+  ArrowRight
+} from 'lucide-react';
 
-    <!-- Auth Screen -->
-    <div id="auth-screen" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center p-6">
-        <div class="max-w-md w-full text-center">
-            <span class="text-6xl mb-4 block animate-bounce">🐧</span>
-            <h1 class="text-5xl font-black text-[#58cc02] mb-2">LINGUIX</h1>
-            <p class="text-slate-500 mb-8 font-bold text-lg">Linux'u 160 adımda uzman gibi öğren.</p>
-            
-            <div class="space-y-4">
-                <button id="google-login" class="w-full flex items-center justify-center gap-3 border-2 border-b-6 border-slate-200 py-4 rounded-2xl font-black hover:bg-slate-50 transition-all active:border-b-0 active:translate-y-1">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6" alt="">
-                    Google ile Giriş Yap
-                </button>
-                <button id="anon-login" class="w-full py-4 rounded-2xl font-black text-slate-400 hover:text-[#1cb0f6] transition-all">
-                    Misafir Modunda Başla
-                </button>
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCU770IpyRi5xYKYKZjkKEXKyaWNg1lTy8",
+  authDomain: "linuxing-578c5.firebaseapp.com",
+  projectId: "linuxing-578c5",
+  storageBucket: "linuxing-578c5.firebasestorage.app",
+  messagingSenderId: "838982298549",
+  appId: "1:838982298549:web:5c83c0044d8fbe5cfa47fc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = "linguix-v2-160";
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authMode, setAuthMode] = useState('login'); 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  
+  const [userStats, setUserStats] = useState({ xp: 0, level: 1, streak: 0 });
+  const [terminalError, setTerminalError] = useState(null);
+  const [showWin, setShowWin] = useState(false);
+  const [step, setStep] = useState(1); // 1: Info, 2: Question/Terminal
+  
+  const terminalRef = useRef(null);
+  const xtermRef = useRef(null);
+  const currentLineRef = useRef("");
+
+  // Lessons content mapping
+  const getLesson = (level) => {
+    if (level === 1) return {
+      title: "Bölüm 1: Neredeyim? (pwd)",
+      info: "Linux'ta her şey bir ağaç yapısı gibidir. Terminali açtığında aslında bir klasörün içindesindir. 'pwd' komutu 'Print Working Directory' (Çalışılan Dizini Yazdır) anlamına gelir.",
+      task: "Şu an hangi dizinde (klasörde) olduğunu öğrenmek için gerekli olan 3 harfli komutu terminale yaz ve Enter'a bas.",
+      cmd: "pwd",
+      out: "/home/linguix",
+      explanation: "Yanlış oldu! Unutma: 'Print Working Directory'nin baş harflerini kullanmalısın. Yani: p... w... d..."
+    };
+    return {
+      title: `Ders ${level}`,
+      info: "Gelişmiş navigasyon tekniklerini öğrenmeye devam ediyorsun.",
+      task: "Devam etmek için 'clear' yaz.",
+      cmd: "clear",
+      out: "",
+      explanation: "Ekranı temizlemek için 'clear' yazmalısın."
+    };
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        setUser(u);
+        const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid, 'profile', 'progress');
+        const snap = await getDoc(userDocRef);
+        if (!snap.exists()) {
+          await setDoc(userDocRef, { xp: 0, level: 1, streak: 0 });
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      const userDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'progress');
+      const unsub = onSnapshot(userDoc, (snap) => {
+        if (snap.exists()) setUserStats(snap.data());
+      });
+      return () => unsub();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && step === 2 && terminalRef.current && !xtermRef.current) {
+      const term = new Terminal({
+        cursorBlink: true,
+        theme: { background: '#ffffff', foreground: '#1a1a1a', cursor: '#22c55e' },
+        fontSize: 16,
+        fontFamily: 'monospace'
+      });
+      const fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+      term.open(terminalRef.current);
+      fitAddon.fit();
+      
+      term.writeln('\x1b[32mLinguix Interactive Shell v2.0\x1b[0m');
+      term.write('\r\n$ ');
+
+      term.onData(e => {
+        if (e === '\r') {
+          handleCommand(currentLineRef.current);
+          currentLineRef.current = "";
+        } else if (e === '\u007F') {
+          if (currentLineRef.current.length > 0) {
+            currentLineRef.current = currentLineRef.current.slice(0, -1);
+            term.write('\b \b');
+          }
+        } else {
+          currentLineRef.current += e;
+          term.write(e);
+        }
+      });
+      xtermRef.current = term;
+    }
+  }, [user, step]);
+
+  const handleCommand = async (cmd) => {
+    const lesson = getLesson(userStats.level);
+    const input = cmd.trim().toLowerCase();
+    xtermRef.current.write('\r\n');
+    
+    if (input === lesson.cmd) {
+      xtermRef.current.writeln(lesson.out);
+      xtermRef.current.writeln('\x1b[32m[TEBRİKLER] Doğru komut!\x1b[0m');
+      setTerminalError(null);
+      setTimeout(() => setShowWin(true), 500);
+    } else {
+      xtermRef.current.writeln(`\x1b[31mHata: '${input}' komutu bu görev için doğru değil.\x1b[0m`);
+      setTerminalError(lesson.explanation);
+      xtermRef.current.write('\r\n$ ');
+    }
+  };
+
+  const nextLesson = async () => {
+    const newStats = { ...userStats, level: userStats.level + 1, xp: userStats.xp + 10 };
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'progress'), newStats);
+    setShowWin(false);
+    setStep(1);
+    setTerminalError(null);
+    xtermRef.current = null;
+  };
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (authMode === 'login') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else if (authMode === 'signup') {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else if (authMode === 'reset') {
+        await sendPasswordResetEmail(auth, email);
+        alert('Şifre sıfırlama maili gönderildi. Klasörlerini kontrol et!');
+        setAuthMode('login');
+      }
+    } catch (err) {
+      setError("İşlem başarısız: Bilgilerini kontrol et.");
+    }
+  };
+
+  const googleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      setError("Google girişi şu an yapılamıyor.");
+    }
+  };
+
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white font-bold text-slate-800">Sistem Hazırlanıyor...</div>;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-100 shadow-2xl p-10">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight italic">LINGUIX<span className="text-green-500">.</span></h1>
+            <p className="text-slate-400 font-medium mt-2">Linux öğrenmenin en temiz yolu.</p>
+          </div>
+
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">E-posta</label>
+              <input 
+                type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 focus:bg-white focus:ring-2 focus:ring-green-500/20 outline-none transition-all font-semibold"
+                placeholder="merhaba@linux.com"
+              />
             </div>
+
+            {authMode !== 'reset' && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Şifre</label>
+                <input 
+                  type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 focus:bg-white focus:ring-2 focus:ring-green-500/20 outline-none transition-all font-semibold"
+                  placeholder="••••••••"
+                />
+              </div>
+            )}
+
+            {error && <p className="text-red-500 text-xs font-bold text-center px-2">{error}</p>}
+
+            <button type="submit" className="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-[0.98]">
+              {authMode === 'login' ? 'Giriş Yap' : authMode === 'signup' ? 'Kayıt Ol' : 'Şifremi Sıfırla'}
+            </button>
+          </form>
+
+          <div className="mt-6 flex items-center gap-4">
+            <div className="h-[1px] bg-slate-100 flex-1"></div>
+            <span className="text-xs font-bold text-slate-300">VEYA</span>
+            <div className="h-[1px] bg-slate-100 flex-1"></div>
+          </div>
+
+          <button onClick={googleLogin} className="w-full mt-6 flex items-center justify-center gap-3 border border-slate-200 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-[0.98]">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" className="w-5" alt=""/>
+            Google ile Giriş
+          </button>
+
+          <div className="mt-8 pt-6 border-t border-slate-50 flex justify-center gap-4 text-xs font-bold text-slate-400">
+            {authMode === 'login' ? (
+              <>
+                <button onClick={() => setAuthMode('signup')} className="hover:text-slate-900">Hesap Aç</button>
+                <span>•</span>
+                <button onClick={() => setAuthMode('reset')} className="hover:text-slate-900">Şifremi Unuttum</button>
+              </>
+            ) : (
+              <button onClick={() => setAuthMode('login')} className="hover:text-slate-900">Giriş Ekranına Dön</button>
+            )}
+          </div>
         </div>
-    </div>
+      </div>
+    );
+  }
 
-    <!-- App Content -->
-    <div id="app-content" class="hidden flex flex-col h-screen">
-        <!-- Header -->
-        <header class="bg-white border-b-2 border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl font-black text-[#58cc02] tracking-tighter italic">LINGUIX</span>
-                <span id="level-tag" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase">Çaylak</span>
-            </div>
-            <div class="flex gap-6 items-center">
-                <div class="flex items-center gap-2 text-orange-500 font-black">🔥 <span id="streak-val">0</span></div>
-                <div class="flex items-center gap-2 text-blue-400 font-black">💎 <span id="xp-val">0</span></div>
-                <button id="logout-btn" class="p-2 hover:bg-red-50 rounded-lg transition-colors">🚪</button>
-            </div>
-        </header>
+  const currentLesson = getLesson(userStats.level);
 
-        <main class="flex-1 flex flex-col md:flex-row p-4 md:p-8 gap-8 overflow-hidden">
-            <!-- Left: Task & Progress -->
-            <div class="md:w-[400px] flex flex-col gap-6 overflow-y-auto">
-                <div class="bg-white border-2 border-b-4 border-slate-200 rounded-3xl p-6 shadow-sm">
-                    <div class="flex justify-between items-center mb-3">
-                        <span id="lesson-index" class="text-xs font-black text-slate-400 uppercase tracking-widest">Ders 1/160</span>
-                        <span class="text-xs font-bold text-green-500" id="xp-gain">+10 XP</span>
-                    </div>
-                    <div class="w-full bg-slate-100 h-4 rounded-full mb-6 overflow-hidden">
-                        <div id="progress-fill" class="bg-[#58cc02] h-full rounded-full progress-bar" style="width: 0%"></div>
-                    </div>
-                    
-                    <h2 id="task-title" class="text-2xl font-black text-slate-800 mb-3">Yükleniyor...</h2>
-                    <div class="prose prose-slate mb-6">
-                        <p id="task-instruction" class="text-slate-600 text-lg leading-relaxed"></p>
-                    </div>
-
-                    <!-- Feedback Box -->
-                    <div id="error-box" class="hidden bg-red-50 border-2 border-red-200 p-4 rounded-2xl mb-4">
-                        <div class="flex gap-3">
-                            <span class="text-xl">💡</span>
-                            <div>
-                                <p class="font-bold text-red-800 text-sm">Nerede hata yaptın?</p>
-                                <p id="error-msg" class="text-red-700 text-sm italic"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Goal Hint -->
-                <div class="bg-blue-50 border-2 border-blue-100 rounded-3xl p-5">
-                    <p class="text-blue-800 font-bold text-sm mb-1 uppercase tracking-tight">Kritik Bilgi</p>
-                    <p id="lesson-hint" class="text-blue-600 text-sm font-medium"></p>
-                </div>
-            </div>
-
-            <!-- Right: Terminal Area -->
-            <div class="flex-1 bg-[#1e1e1e] rounded-[2.5rem] overflow-hidden border-[12px] border-slate-800 shadow-2xl flex flex-col relative">
-                <div class="bg-slate-800 px-6 py-3 flex items-center justify-between border-b border-white/5">
-                    <div class="flex gap-2">
-                        <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                        <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                        <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
-                    </div>
-                    <div class="text-white/30 font-mono text-[10px] tracking-widest uppercase">Linguix Terminal v2.0</div>
-                </div>
-                <div id="terminal-host" class="flex-1 p-4"></div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Success Modal -->
-    <div id="win-modal" class="fixed inset-0 bg-slate-900/90 z-[300] hidden items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl scale-in transform transition-all">
-            <div class="text-7xl mb-6">🙌</div>
-            <h2 class="text-3xl font-black text-slate-800 mb-2">HARİKA İŞ!</h2>
-            <p class="text-slate-500 font-bold mb-8 italic">Sıradaki komut seni bekliyor.</p>
-            <button id="next-lesson-btn" class="w-full bg-[#58cc02] hover:bg-[#46a302] text-white font-black py-5 rounded-2xl border-b-6 border-[#3a8a02] active:border-b-0 active:translate-y-1 transition-all uppercase tracking-widest text-lg">DEVAM ET</button>
+  return (
+    <div className="h-screen bg-white flex flex-col font-sans text-slate-900">
+      {/* Navbar */}
+      <nav className="h-16 border-b border-slate-100 px-8 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          <span className="text-2xl font-black italic tracking-tighter">LINGUIX<span className="text-green-500">.</span></span>
+          <div className="hidden md:flex gap-6 text-sm font-bold text-slate-400">
+            <span className="text-slate-900">EĞİTİM</span>
+            <span className="hover:text-slate-600 cursor-pointer">KÜTÜPHANE</span>
+            <span className="hover:text-slate-600 cursor-pointer">TOPLULUK</span>
+          </div>
         </div>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full font-bold text-sm">
+            <Gem className="w-4 text-blue-500" /> {userStats.xp} XP
+          </div>
+          <button onClick={() => signOut(auth)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+            <LogOut className="w-5 text-slate-400" />
+          </button>
+        </div>
+      </nav>
+
+      {/* Workspace */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel: Content */}
+        <div className="w-full md:w-1/2 p-10 overflow-y-auto flex flex-col">
+          <div className="max-w-xl mx-auto w-full">
+            <div className="mb-8 flex items-center justify-between">
+              <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Ders {userStats.level} / 160</span>
+              <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500" style={{ width: `${(userStats.level/160)*100}%` }}></div>
+              </div>
+            </div>
+
+            <h2 className="text-3xl font-black mb-6 leading-tight">{currentLesson.title}</h2>
+
+            {step === 1 ? (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100">
+                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6 text-green-500">
+                    <Info className="w-6" />
+                  </div>
+                  <p className="text-lg font-medium text-slate-700 leading-relaxed">
+                    {currentLesson.info}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setStep(2)}
+                  className="group flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition-all"
+                >
+                  Anladım, Uygulayalım <ArrowRight className="w-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="bg-green-50 rounded-3xl p-8 border border-green-100">
+                  <div className="flex gap-4">
+                    <div className="shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">?</div>
+                    <div>
+                      <h4 className="font-black text-green-900 mb-2">GÖREVİN:</h4>
+                      <p className="text-green-800 font-bold leading-relaxed">{currentLesson.task}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {terminalError && (
+                  <div className="bg-red-50 rounded-2xl p-6 border border-red-100 flex gap-4">
+                    <AlertCircle className="text-red-500 shrink-0" />
+                    <p className="text-sm font-bold text-red-700">{terminalError}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel: Interactive Terminal */}
+        <div className="hidden md:block w-1/2 bg-slate-50 p-10">
+          {step === 2 ? (
+            <div className="h-full bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
+              <div className="h-12 border-b border-slate-100 flex items-center px-6 gap-2">
+                <div className="w-3 h-3 rounded-full bg-slate-200"></div>
+                <div className="w-3 h-3 rounded-full bg-slate-200"></div>
+                <div className="w-3 h-3 rounded-full bg-slate-200"></div>
+                <span className="ml-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Linguix Terminal Emulator</span>
+              </div>
+              <div className="flex-1 p-6 overflow-hidden">
+                <div ref={terminalRef} className="h-full" />
+              </div>
+            </div>
+          ) : (
+            <div className="h-full flex items-center justify-center border-2 border-dashed border-slate-200 rounded-[2.5rem]">
+              <div className="text-center space-y-4">
+                <TerminalIcon className="w-12 h-12 text-slate-200 mx-auto" />
+                <p className="text-sm font-bold text-slate-300 uppercase tracking-widest">Önce konuyu oku</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Success Modal */}
+      {showWin && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-[3rem] p-12 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 text-green-500">
+              <CheckCircle2 className="w-12 h-12" />
+            </div>
+            <h2 className="text-3xl font-black mb-2">HARİKA!</h2>
+            <p className="text-slate-400 font-bold mb-10">Dizini başarıyla tespit ettin. Linux ağacında ilk adımını attın.</p>
+            <button 
+              onClick={nextLesson}
+              className="w-full bg-green-500 text-white font-black py-5 rounded-2xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all active:scale-[0.98]"
+            >
+              SONRAKİ DERS
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCU770IpyRi5xYKYKZjkKEXKyaWNg1lTy8",
-            authDomain: "linuxing-578c5.firebaseapp.com",
-            projectId: "linuxing-578c5",
-            storageBucket: "linuxing-578c5.firebasestorage.app",
-            messagingSenderId: "838982298549",
-            appId: "1:838982298549:web:5c83c0044d8fbe5cfa47fc"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = "linguix-ultimate-160";
-
-        // --- 160 DERSLİK DEV MÜFREDAT ---
-        const curriculum = [
-            // SEVİYE 1: TEMEL NAVİGASYON (1-20)
-            { id: 1, title: "Konum Sorgulama", task: "Şu an hangi klasörde olduğunu görmek için pwd komutunu kullan.", cmd: "pwd", out: "/home/user", hint: "pwd: 'Print Working Directory' (Çalışma dizinini yazdır) demektir.", err: "Sadece 'pwd' yazmalısın. Boşluk bırakma." },
-            { id: 2, title: "Çevrene Bak", task: "Klasördeki dosyaları listelemek için ls yaz.", cmd: "ls", out: "desktop documents downloads music photos", hint: "ls: 'List' (Listele) demektir.", err: "ls yazarken 'L' harfini küçük yazmalısın (ls)." },
-            { id: 3, title: "Klasör Değiştir", task: "Dizindeki 'documents' klasörüne girmek için cd documents yaz.", cmd: "cd documents", out: "", hint: "cd: 'Change Directory' (Dizin değiştir) demektir.", err: "cd komutundan sonra klasör adını (documents) yazmayı unutma." },
-            { id: 4, title: "Geri Dön", task: "Bir üst klasöre çıkmak için cd .. komutunu kullan.", cmd: "cd ..", out: "", hint: "Nokta noktalar (..) 'üst klasör' anlamına gelir.", err: "cd ile .. arasında bir boşluk olmalıdır: 'cd ..'" },
-            { id: 5, title: "Gizli Dosyalar", task: "Gizli dosyaları görmek için ls -a yaz.", cmd: "ls -a", out: ".  ..  .bashrc  .profile  documents", hint: "'-a' (all) gizli olan '.' ile başlayan dosyaları gösterir.", err: "ls ile -a arasında boşluk olmalı." },
-            // ... 160 Dersin Algoritmik Üretimi (Mantık Olarak Genişletildi)
-        ];
-
-        // 160 dersi doldurmak için kategori bazlı jeneratör
-        for(let i = 6; i <= 160; i++) {
-            if(i <= 30) curriculum.push({ id: i, title: `Dosya İşlemleri ${i-5}`, task: `Ders ${i}: Yeni bir dosya oluşturmak için 'touch dosya${i}.txt' yaz.`, cmd: `touch dosya${i}.txt`, out: "", hint: "touch: Boş dosya yaratır.", err: "Komutu tam olarak 'touch dosya.txt' şeklinde yazmalısın." });
-            else if(i <= 60) curriculum.push({ id: i, title: `Yetkilendirme ${i-30}`, task: `Ders ${i}: Dosyaya yazma izni vermek için 'chmod +w dosya' yaz.`, cmd: `chmod +w dosya`, out: "", hint: "chmod: Change Mode (Erişim modunu değiştir).", err: "chmod ile parametreler arasına boşluk koy." });
-            else if(i <= 90) curriculum.push({ id: i, title: `Ağ Komutları ${i-60}`, task: `Ders ${i}: Bağlantıyı test etmek için 'ping google.com' yaz.`, cmd: `ping google.com`, out: "64 bytes from...", hint: "ping: Ağ gecikmesini ölçer.", err: "ping'den sonra adres yazılmalı." });
-            else curriculum.push({ id: i, title: `Sistem Yönetimi ${i-90}`, task: `Ders ${i}: Sistem süreçlerini görmek için 'top' yaz.`, cmd: "top", out: "PID USER PR NI VIRT RES...", hint: "top: Canlı kaynak kullanımını gösterir.", err: "Sadece 'top' yazıp Enter'a bas." });
-        }
-
-        let userState = { xp: 0, level: 1, streak: 0, lastActivity: Date.now() };
-        let term = null;
-        let currentInput = "";
-
-        // UI Helpers
-        const updateUI = () => {
-            const lesson = curriculum[userState.level - 1];
-            document.getElementById('lesson-index').innerText = `Ders ${userState.level}/160`;
-            document.getElementById('task-title').innerText = lesson.title;
-            document.getElementById('task-instruction').innerHTML = lesson.task;
-            document.getElementById('lesson-hint').innerText = lesson.hint;
-            document.getElementById('progress-fill').style.width = `${(userState.level / 160) * 100}%`;
-            document.getElementById('xp-val').innerText = userState.xp;
-            document.getElementById('streak-val').innerText = userState.streak;
-            
-            // Seviye Etiketi
-            const tags = ["Çaylak", "Öğrenci", "Kullanıcı", "Operatör", "Yönetici", "Root Master"];
-            const tagIdx = Math.min(Math.floor(userState.level / 30), 5);
-            document.getElementById('level-tag').innerText = tags[tagIdx];
-        };
-
-        // Firebase Logic
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                initTerminal();
-                syncData(user.uid);
-            } else {
-                document.getElementById('auth-screen').classList.remove('hidden');
-            }
-        });
-
-        async function syncData(uid) {
-            const ref = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'progress');
-            onSnapshot(ref, (snap) => {
-                if (snap.exists()) {
-                    userState = snap.data();
-                    updateUI();
-                } else {
-                    saveData(uid);
-                }
-            });
-        }
-
-        async function saveData(uid) {
-            const ref = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'progress');
-            await setDoc(ref, userState);
-        }
-
-        // Terminal Logic
-        function initTerminal() {
-            if (term) return;
-            term = new Terminal({
-                cursorBlink: true,
-                fontSize: 18,
-                theme: { background: '#1e1e1e', foreground: '#d1d5db', cursor: '#58cc02' },
-                fontFamily: 'Courier New'
-            });
-            term.open(document.getElementById('terminal-host'));
-            prompt();
-
-            term.onData(data => {
-                if (data === '\r') {
-                    processCommand(currentInput.trim());
-                    currentInput = "";
-                } else if (data === '\u007F') { // Backspace
-                    if (currentInput.length > 0) {
-                        currentInput = currentInput.slice(0, -1);
-                        term.write('\b \b');
-                    }
-                } else {
-                    currentInput += data;
-                    term.write(data);
-                }
-            });
-        }
-
-        function prompt() {
-            term.write('\r\n\x1b[1;32muser@linguix:~\x1b[0m$ ');
-        }
-
-        function processCommand(cmd) {
-            const lesson = curriculum[userState.level - 1];
-            term.write('\r\n');
-
-            if (cmd === lesson.cmd) {
-                term.write(lesson.out + '\r\n\x1b[32m[OK] Başarılı!\x1b[0m\r\n');
-                document.getElementById('error-box').classList.add('hidden');
-                showWin();
-            } else {
-                term.write(`\x1b[31m-bash: ${cmd}: komut bulunamadı veya hatalı\x1b[0m\r\n`);
-                showError(lesson.err);
-                prompt();
-            }
-        }
-
-        function showError(msg) {
-            const eb = document.getElementById('error-box');
-            document.getElementById('error-msg').innerText = msg;
-            eb.classList.remove('hidden');
-        }
-
-        function showWin() {
-            document.getElementById('win-modal').classList.remove('hidden');
-            document.getElementById('win-modal').classList.add('flex');
-        }
-
-        // Action Handlers
-        document.getElementById('google-login').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
-        document.getElementById('anon-login').onclick = () => signInAnonymously(auth);
-        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
-
-        document.getElementById('next-lesson-btn').onclick = async () => {
-            userState.level++;
-            userState.xp += 10;
-            userState.lastActivity = Date.now();
-            await saveData(auth.currentUser.uid);
-            
-            document.getElementById('win-modal').classList.add('hidden');
-            document.getElementById('win-modal').classList.remove('flex');
-            term.clear();
-            prompt();
-        };
-
-    </script>
-</body>
-</html>
+  );
+}
 
