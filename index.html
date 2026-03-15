@@ -57,7 +57,8 @@
                     Misafir Olarak Devam Et
                 </button>
             </div>
-            <div id="error-toast" class="hidden mt-6 p-4 bg-red-500/10 text-red-400 text-xs font-bold rounded-2xl border border-red-500/20"></div>
+            <!-- Dinamik Hata Mesajı Alanı -->
+            <div id="error-toast" class="hidden mt-6 p-4 bg-red-500/10 text-red-400 text-[11px] font-bold rounded-2xl border border-red-500/20 leading-tight"></div>
         </div>
     </div>
 
@@ -79,7 +80,7 @@
         </header>
 
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            <!-- Left Panel (Metinler Artık Daha Geniş) -->
+            <!-- Left Panel -->
             <div class="w-full lg:w-[50%] p-6 md:p-12 lg:p-16 overflow-y-auto bg-slate-900 border-r border-white/5 shadow-2xl z-10">
                 <div class="max-w-xl mx-auto space-y-12">
                     <div class="flex items-center gap-4">
@@ -113,7 +114,7 @@
                 </div>
             </div>
 
-            <!-- Right Panel (Terminal Biraz Daraltıldı) -->
+            <!-- Right Panel -->
             <div class="w-full lg:w-[50%] p-6 md:p-12 flex flex-col justify-center bg-slate-950">
                 <div class="w-full h-full max-h-[600px] flex flex-col terminal-container overflow-hidden group border border-white/5">
                     <div class="h-14 bg-slate-900/80 flex items-center px-8 gap-3 border-b border-white/5">
@@ -145,7 +146,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -170,10 +171,18 @@
         let state = { xp: 0, level: 1 };
         let xterm, inputBuffer = "";
 
-        const playSnd = (id) => {
-            const el = document.getElementById(id);
-            if (el) { el.currentTime = 0; el.play().catch(() => {}); }
+        // Yardımcı hata mesajı gösterici
+        const showError = (msg) => {
+            const toast = document.getElementById('error-toast');
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 8000);
         };
+
+        // Redirect sonucunu kontrol et (Popup engellendiğinde yönlendirme sonrası)
+        getRedirectResult(auth).catch((error) => {
+            showError("Giriş başarısız: " + error.message);
+        });
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -244,11 +253,11 @@
             const current = lessons[state.level - 1];
             xterm.write('\r\n');
             if (raw.toLowerCase() === current.cmd) {
-                playSnd('snd-success');
+                document.getElementById('snd-success').play().catch(()=>{});
                 xterm.writeln(current.response);
                 document.getElementById('success-modal').style.display = 'flex';
             } else {
-                playSnd('snd-error');
+                document.getElementById('snd-error').play().catch(()=>{});
                 xterm.writeln(`\x1b[31mHATA: '${raw}' yanlış komut.\x1b[0m`);
                 document.getElementById('error-text').innerText = `Görevi tamamlamak için '${current.cmd}' yazmalısın.`;
                 document.getElementById('error-alert').classList.remove('hidden');
@@ -256,22 +265,27 @@
             }
         }
 
+        // Google Giriş Mantığı
         document.getElementById('btn-google').onclick = async () => {
             const provider = new GoogleAuthProvider();
             try { 
+                // Önce Popup dene
                 await signInWithPopup(auth, provider); 
             } catch (e) {
-                if(e.code === 'auth/unauthorized-domain') {
-                    document.getElementById('error-toast').innerText = "Bu adres yetkilendirilmemiş. Firebase panelinden Render adresini ekleyin.";
-                    document.getElementById('error-toast').classList.remove('hidden');
-                } else {
+                console.error("Auth Error:", e);
+                if (e.code === 'auth/popup-blocked') {
+                    // Popup engellendiyse yönlendir
                     await signInWithRedirect(auth, provider);
+                } else if (e.code === 'auth/unauthorized-domain') {
+                    showError("Hata: Bu site (domain) Firebase Console'da yetkilendirilmemiş. Lütfen tarayıcıdaki URL'yi Firebase Auth -> Settings -> Authorized Domains kısmına ekleyin.");
+                } else {
+                    showError("Bir hata oluştu: " + e.message);
                 }
             }
         };
 
         document.getElementById('btn-start').onclick = () => {
-            playSnd('snd-click');
+            document.getElementById('snd-click').play().catch(()=>{});
             document.getElementById('panel-info').classList.add('hidden');
             document.getElementById('panel-task').classList.remove('hidden');
         };
