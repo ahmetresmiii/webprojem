@@ -14,6 +14,7 @@
             background-color: #0f172a;
             color: #f1f5f9;
             overflow: hidden;
+            touch-action: manipulation;
         }
         .glass-dark { 
             background: rgba(15, 23, 42, 0.8); 
@@ -35,7 +36,6 @@
     <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
     <audio id="snd-error" src="https://assets.mixkit.co/active_storage/sfx/253/253-preview.mp3"></audio>
 
-    <!-- Authentication Layer -->
     <div id="auth-layer" class="fixed inset-0 bg-slate-950 z-[999] flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-[3rem] p-10 text-center relative overflow-hidden">
             <h1 class="text-4xl font-black italic mb-2 tracking-tighter text-white">LINGUIX<span class="text-green-500">.</span></h1>
@@ -51,7 +51,6 @@
         </div>
     </div>
 
-    <!-- Main Application UI -->
     <div id="main-app" class="hidden h-screen flex flex-col">
         <header class="h-20 glass-dark border-b border-white/5 px-6 md:px-10 flex items-center justify-between z-50">
             <span class="text-2xl font-black italic tracking-tighter text-white">LINGUIX<span class="text-green-500">.</span></span>
@@ -66,7 +65,6 @@
         </header>
 
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            <!-- Content Panel -->
             <div class="w-full lg:w-[50%] p-6 md:p-12 lg:p-16 overflow-y-auto bg-slate-900 border-r border-white/5">
                 <div class="max-w-xl mx-auto space-y-8">
                     <div class="flex items-center gap-4">
@@ -77,14 +75,14 @@
                     </div>
                     <h2 id="lesson-title" class="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter"></h2>
                     
-                    <div id="panel-info" class="space-y-8 animate-in fade-in duration-500">
+                    <div id="panel-info" class="space-y-8">
                         <div class="p-8 rounded-[2.5rem] bg-slate-800/40 border border-white/10">
                             <p id="lesson-text" class="text-xl md:text-2xl font-semibold text-slate-200 leading-relaxed"></p>
                         </div>
                         <button id="btn-start" class="w-full bg-green-500 text-slate-950 px-8 py-6 rounded-[2rem] font-black text-xl hover:bg-green-400 transition-colors">BAŞLA</button>
                     </div>
 
-                    <div id="panel-task" class="hidden space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div id="panel-task" class="hidden space-y-8">
                         <div class="bg-gradient-to-br from-green-600 to-emerald-700 rounded-[2.5rem] p-10 text-slate-950 shadow-2xl">
                             <p id="lesson-goal" class="text-2xl font-black"></p>
                         </div>
@@ -95,7 +93,6 @@
                 </div>
             </div>
 
-            <!-- Terminal Panel -->
             <div class="w-full lg:w-[50%] p-6 md:p-12 flex flex-col justify-center bg-slate-950">
                 <div class="w-full h-full max-h-[600px] flex flex-col terminal-container overflow-hidden border border-white/5">
                     <div class="h-10 bg-slate-900/80 flex items-center px-6 border-b border-white/5">
@@ -107,7 +104,6 @@
         </div>
     </div>
 
-    <!-- Completion Modal -->
     <div id="success-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[1000] hidden items-center justify-center p-6">
         <div class="bg-slate-900 rounded-[4rem] p-12 max-w-sm w-full text-center border border-white/10 shadow-2xl">
             <h2 class="text-4xl font-black text-white mb-3 italic">BAŞARILI!</h2>
@@ -137,17 +133,12 @@
         const APP_VERSION = "linguix-master-v3";
 
         const lessons = [
-            { id: 1, title: "Neredeyim Ben?", text: "Linux terminalinde kaybolduğunda 'pwd' (Print Working Directory) imdadına yetişir. O an tam olarak hangi klasörün içinde olduğunu gösterir.", goal: "Terminale 'pwd' yazıp Enter'la.", cmd: "pwd", response: "/home/uzman/linguix" },
-            { id: 2, title: "İçerikleri Gör", text: "Bulunduğun yerdeki dosyaları ve klasörleri listelemek için 'ls' komutunu kullanırız. Karanlık bir odada ışığı açmak gibidir.", goal: "Dosyaları listelemek için 'ls' komutunu çalıştır.", cmd: "ls", response: "belgeler/  notlar.txt  projem/  ayarlar.cfg" }
+            { id: 1, title: "Neredeyim Ben?", text: "Linux terminalinde kaybolduğunda 'pwd' (Print Working Directory) imdadına yetişir.", goal: "Terminale 'pwd' yazıp Enter'la.", cmd: "pwd", response: "/home/uzman/linguix" },
+            { id: 2, title: "İçerikleri Gör", text: "Dosyaları listelemek için 'ls' komutunu kullanırız.", goal: "Dosyaları listelemek için 'ls' komutunu çalıştır.", cmd: "ls", response: "belgeler/  notlar.txt  projem/  ayarlar.cfg" }
         ];
 
         let state = { xp: 0, level: 1 };
         let xterm, inputBuffer = "";
-
-        const showError = (msg) => {
-            const toast = document.getElementById('error-toast');
-            if (toast) { toast.innerText = msg; toast.classList.remove('hidden'); }
-        };
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -155,20 +146,15 @@
                 document.getElementById('main-app').classList.remove('hidden');
                 await loadUserData(user.uid);
                 setupTerminal();
-            } else {
-                document.getElementById('auth-layer').classList.remove('hidden');
-                document.getElementById('main-app').classList.add('hidden');
             }
         });
 
         async function loadUserData(uid) {
             const docRef = doc(db, 'artifacts', APP_VERSION, 'users', uid, 'profile', 'progress');
-            try {
-                const snap = await getDoc(docRef);
-                if (snap.exists()) state = snap.data();
-                else await setDoc(docRef, state);
-                renderUI();
-            } catch(e) { console.error(e); }
+            const snap = await getDoc(docRef);
+            if (snap.exists()) state = snap.data();
+            else await setDoc(docRef, state);
+            renderUI();
         }
 
         function renderUI() {
@@ -179,7 +165,6 @@
             document.getElementById('lesson-goal').innerText = current.goal;
             document.getElementById('xp-display').innerText = state.xp;
             document.getElementById('progress-bar').style.width = `${(state.level / lessons.length) * 100}%`;
-            
             document.getElementById('panel-info').classList.remove('hidden');
             document.getElementById('panel-task').classList.add('hidden');
             document.getElementById('error-alert').classList.add('hidden');
@@ -190,14 +175,13 @@
             xterm = new Terminal({
                 cursorBlink: true,
                 fontSize: 18,
-                theme: { background: '#000000', foreground: '#22c55e', cursor: '#22c55e' },
-                fontFamily: '"Plus Jakarta Sans", monospace'
+                theme: { background: '#000000', foreground: '#22c55e', cursor: '#22c55e' }
             });
             xterm.open(document.getElementById('terminal'));
             
             xterm.onData(data => {
-                // Enter handling for both \r and \n
-                if (data === '\r' || data === '\n') {
+                // Daha kapsamlı Enter yakalama (\r, \n veya \r\n)
+                if (data.charCodeAt(0) === 13 || data.charCodeAt(0) === 10) {
                     handleCmd(inputBuffer.trim());
                     inputBuffer = "";
                 } else if (data === '\u007F') { // Backspace
@@ -214,8 +198,7 @@
         }
 
         function prompt() { 
-            if (!xterm) return;
-            xterm.write('\r\n\x1b[32m➜\x1b[0m \x1b[36m~/linguix\x1b[0m $ '); 
+            if (xterm) xterm.write('\r\n\x1b[32m➜\x1b[0m \x1b[36m~/linguix\x1b[0m $ '); 
         }
 
         function handleCmd(raw) {
@@ -226,11 +209,13 @@
             if (raw.toLowerCase() === current.cmd) {
                 document.getElementById('snd-success').play().catch(()=>{});
                 xterm.writeln(current.response);
-                document.getElementById('success-modal').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('success-modal').style.display = 'flex';
+                }, 400);
             } else {
                 document.getElementById('snd-error').play().catch(()=>{});
-                xterm.writeln(`\x1b[31mHATA: '${raw}' komutu bulunamadı.\x1b[0m`);
-                document.getElementById('error-text').innerText = `Talimatı tamamlamak için '${current.cmd}' yazman gerekiyor.`;
+                xterm.writeln(`\x1b[31mHATA: '${raw}' komutu yanlıs.\x1b[0m`);
+                document.getElementById('error-text').innerText = `'${current.cmd}' yazman gerekiyor.`;
                 document.getElementById('error-alert').classList.remove('hidden');
                 prompt();
             }
@@ -238,19 +223,13 @@
 
         document.getElementById('btn-google').onclick = async () => {
             const provider = new GoogleAuthProvider();
-            try { await signInWithPopup(auth, provider); } 
-            catch (e) { await signInWithRedirect(auth, provider); }
+            try { await signInWithPopup(auth, provider); } catch (e) { await signInWithRedirect(auth, provider); }
         };
 
         document.getElementById('btn-start').onclick = () => {
-            document.getElementById('snd-click').play().catch(()=>{});
             document.getElementById('panel-info').classList.add('hidden');
             document.getElementById('panel-task').classList.remove('hidden');
-            
-            // Fix focus error: check if xterm exists and delay for mobile keyboards
-            if (xterm) {
-                setTimeout(() => xterm.focus(), 100);
-            }
+            if (xterm) setTimeout(() => xterm.focus(), 200);
         };
 
         document.getElementById('btn-next').onclick = async () => {
@@ -259,11 +238,7 @@
             await setDoc(doc(db, 'artifacts', APP_VERSION, 'users', auth.currentUser.uid, 'profile', 'progress'), state);
             document.getElementById('success-modal').style.display = 'none';
             renderUI();
-            if (xterm) {
-                xterm.clear();
-                prompt();
-                xterm.focus();
-            }
+            if (xterm) { xterm.clear(); prompt(); xterm.focus(); }
         };
 
         document.getElementById('btn-logout').onclick = () => signOut(auth);
