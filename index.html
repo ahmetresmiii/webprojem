@@ -3,35 +3,33 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInWithPopup, 
+  signInWithRedirect,
   GoogleAuthProvider, 
   onAuthStateChanged, 
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  signInAnonymously
+  getRedirectResult
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { 
-  Trophy, 
-  Flame, 
-  Gem, 
   LogOut, 
   Mail, 
   Lock, 
-  UserPlus, 
-  ChevronRight, 
   AlertCircle,
   Terminal as TerminalIcon,
-  BookOpen,
   Info,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  ChevronRight,
+  Gem
 } from 'lucide-react';
+import 'xterm/css/xterm.css';
 
-// Firebase Configuration
+// Firebase Yapılandırması
 const firebaseConfig = {
   apiKey: "AIzaSyCU770IpyRi5xYKYKZjkKEXKyaWNg1lTy8",
   authDomain: "linuxing-578c5.firebaseapp.com",
@@ -53,37 +51,46 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
   const [userStats, setUserStats] = useState({ xp: 0, level: 1, streak: 0 });
   const [terminalError, setTerminalError] = useState(null);
   const [showWin, setShowWin] = useState(false);
-  const [step, setStep] = useState(1); // 1: Info, 2: Question/Terminal
+  const [step, setStep] = useState(1);
   
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const currentLineRef = useRef("");
 
-  // Lessons content mapping
+  // Ders İçerikleri
   const getLesson = (level) => {
     if (level === 1) return {
       title: "Bölüm 1: Neredeyim? (pwd)",
-      info: "Linux'ta her şey bir ağaç yapısı gibidir. Terminali açtığında aslında bir klasörün içindesindir. 'pwd' komutu 'Print Working Directory' (Çalışılan Dizini Yazdır) anlamına gelir.",
-      task: "Şu an hangi dizinde (klasörde) olduğunu öğrenmek için gerekli olan 3 harfli komutu terminale yaz ve Enter'a bas.",
+      info: "Linux'ta terminali açtığında bir klasörün içindesindir. 'pwd' (Print Working Directory) komutu, o anki konumunu ekrana yazdırır.",
+      task: "Şu an hangi dizinde olduğunu görmek için 'pwd' yaz ve Enter'a bas.",
       cmd: "pwd",
       out: "/home/linguix",
-      explanation: "Yanlış oldu! Unutma: 'Print Working Directory'nin baş harflerini kullanmalısın. Yani: p... w... d..."
+      explanation: "Hata! Komutu yanlış yazdın. 'pwd' (küçük harflerle) yazmalısın. Bu komut 'Print Working Directory'nin kısaltmasıdır."
     };
     return {
       title: `Ders ${level}`,
-      info: "Gelişmiş navigasyon tekniklerini öğrenmeye devam ediyorsun.",
-      task: "Devam etmek için 'clear' yaz.",
+      info: "Eğitime devam ediyorsun.",
+      task: "Ekranı temizlemek için 'clear' yaz.",
       cmd: "clear",
       out: "",
-      explanation: "Ekranı temizlemek için 'clear' yazmalısın."
+      explanation: "Sadece 'clear' yazman yeterli."
     };
   };
 
+  // Auth ve Redirect Sonuçlarını Dinle
   useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        await getRedirectResult(auth);
+      } catch (err) {
+        console.error("Redirect hatası:", err);
+      }
+    };
+    checkRedirect();
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);
@@ -100,16 +107,18 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Kullanıcı Verilerini İzle
   useEffect(() => {
     if (user) {
       const userDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'progress');
       const unsub = onSnapshot(userDoc, (snap) => {
         if (snap.exists()) setUserStats(snap.data());
-      });
+      }, (err) => console.error("Firestore hatası:", err));
       return () => unsub();
     }
   }, [user]);
 
+  // Terminal Başlatma
   useEffect(() => {
     if (user && step === 2 && terminalRef.current && !xtermRef.current) {
       const term = new Terminal({
@@ -123,7 +132,7 @@ export default function App() {
       term.open(terminalRef.current);
       fitAddon.fit();
       
-      term.writeln('\x1b[32mLinguix Interactive Shell v2.0\x1b[0m');
+      term.writeln('\x1b[32mLinguix Shell v2.0\x1b[0m');
       term.write('\r\n$ ');
 
       term.onData(e => {
@@ -144,18 +153,18 @@ export default function App() {
     }
   }, [user, step]);
 
-  const handleCommand = async (cmd) => {
+  const handleCommand = (cmd) => {
     const lesson = getLesson(userStats.level);
     const input = cmd.trim().toLowerCase();
     xtermRef.current.write('\r\n');
     
     if (input === lesson.cmd) {
       xtermRef.current.writeln(lesson.out);
-      xtermRef.current.writeln('\x1b[32m[TEBRİKLER] Doğru komut!\x1b[0m');
+      xtermRef.current.writeln('\x1b[32m[BAŞARILI] Doğru!\x1b[0m');
       setTerminalError(null);
       setTimeout(() => setShowWin(true), 500);
     } else {
-      xtermRef.current.writeln(`\x1b[31mHata: '${input}' komutu bu görev için doğru değil.\x1b[0m`);
+      xtermRef.current.writeln(`\x1b[31mHata: '${input}' komutu yanlış.\x1b[0m`);
       setTerminalError(lesson.explanation);
       xtermRef.current.write('\r\n$ ');
     }
@@ -174,30 +183,34 @@ export default function App() {
     e.preventDefault();
     setError('');
     try {
-      if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else if (authMode === 'signup') {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else if (authMode === 'reset') {
+      if (authMode === 'login') await signInWithEmailAndPassword(auth, email, password);
+      else if (authMode === 'signup') await createUserWithEmailAndPassword(auth, email, password);
+      else if (authMode === 'reset') {
         await sendPasswordResetEmail(auth, email);
-        alert('Şifre sıfırlama maili gönderildi. Klasörlerini kontrol et!');
+        alert('Mail kutunu kontrol et!');
         setAuthMode('login');
       }
     } catch (err) {
-      setError("İşlem başarısız: Bilgilerini kontrol et.");
+      setError("Hatalı işlem. Bilgilerini kontrol et.");
     }
   };
 
   const googleLogin = async () => {
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err) {
-      setError("Google girişi şu an yapılamıyor.");
+      console.log("Popup engellendi, redirect deneniyor...");
+      await signInWithRedirect(auth, provider);
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-white font-bold text-slate-800">Sistem Hazırlanıyor...</div>;
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-white">
+      <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="font-bold text-slate-800">Sistem Hazırlanıyor...</p>
+    </div>
+  );
 
   if (!user) {
     return (
@@ -213,123 +226,80 @@ export default function App() {
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">E-posta</label>
               <input 
                 type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 focus:bg-white focus:ring-2 focus:ring-green-500/20 outline-none transition-all font-semibold"
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 focus:bg-white outline-none transition-all font-semibold"
                 placeholder="merhaba@linux.com"
               />
             </div>
-
             {authMode !== 'reset' && (
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Şifre</label>
                 <input 
                   type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 focus:bg-white focus:ring-2 focus:ring-green-500/20 outline-none transition-all font-semibold"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 focus:bg-white outline-none transition-all font-semibold"
                   placeholder="••••••••"
                 />
               </div>
             )}
-
-            {error && <p className="text-red-500 text-xs font-bold text-center px-2">{error}</p>}
-
-            <button type="submit" className="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-[0.98]">
-              {authMode === 'login' ? 'Giriş Yap' : authMode === 'signup' ? 'Kayıt Ol' : 'Şifremi Sıfırla'}
+            {error && <p className="text-red-500 text-xs font-bold text-center">{error}</p>}
+            <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-black transition-all">
+              {authMode === 'login' ? 'Giriş Yap' : authMode === 'signup' ? 'Kayıt Ol' : 'Şifre Sıfırla'}
             </button>
           </form>
 
-          <div className="mt-6 flex items-center gap-4">
-            <div className="h-[1px] bg-slate-100 flex-1"></div>
-            <span className="text-xs font-bold text-slate-300">VEYA</span>
-            <div className="h-[1px] bg-slate-100 flex-1"></div>
+          <div className="mt-6 flex items-center gap-4 text-xs font-bold text-slate-300">
+            <div className="h-px bg-slate-100 flex-1"></div> VEYA <div className="h-px bg-slate-100 flex-1"></div>
           </div>
 
-          <button onClick={googleLogin} className="w-full mt-6 flex items-center justify-center gap-3 border border-slate-200 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-[0.98]">
+          <button onClick={googleLogin} className="w-full mt-6 flex items-center justify-center gap-3 border border-slate-200 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" className="w-5" alt=""/>
-            Google ile Giriş
+            Google ile Devam Et
           </button>
 
           <div className="mt-8 pt-6 border-t border-slate-50 flex justify-center gap-4 text-xs font-bold text-slate-400">
-            {authMode === 'login' ? (
-              <>
-                <button onClick={() => setAuthMode('signup')} className="hover:text-slate-900">Hesap Aç</button>
-                <span>•</span>
-                <button onClick={() => setAuthMode('reset')} className="hover:text-slate-900">Şifremi Unuttum</button>
-              </>
-            ) : (
-              <button onClick={() => setAuthMode('login')} className="hover:text-slate-900">Giriş Ekranına Dön</button>
-            )}
+            <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>{authMode === 'login' ? 'Hesap Aç' : 'Giriş Yap'}</button>
+            {authMode === 'login' && <button onClick={() => setAuthMode('reset')}>Şifremi Unuttum</button>}
           </div>
         </div>
       </div>
     );
   }
 
-  const currentLesson = getLesson(userStats.level);
+  const lesson = getLesson(userStats.level);
 
   return (
-    <div className="h-screen bg-white flex flex-col font-sans text-slate-900">
-      {/* Navbar */}
+    <div className="h-screen bg-white flex flex-col font-sans">
       <nav className="h-16 border-b border-slate-100 px-8 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <span className="text-2xl font-black italic tracking-tighter">LINGUIX<span className="text-green-500">.</span></span>
-          <div className="hidden md:flex gap-6 text-sm font-bold text-slate-400">
-            <span className="text-slate-900">EĞİTİM</span>
-            <span className="hover:text-slate-600 cursor-pointer">KÜTÜPHANE</span>
-            <span className="hover:text-slate-600 cursor-pointer">TOPLULUK</span>
-          </div>
-        </div>
+        <span className="text-2xl font-black italic">LINGUIX<span className="text-green-500">.</span></span>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full font-bold text-sm">
+          <div className="bg-slate-50 px-3 py-1 rounded-full font-bold text-sm flex items-center gap-2">
             <Gem className="w-4 text-blue-500" /> {userStats.xp} XP
           </div>
-          <button onClick={() => signOut(auth)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-            <LogOut className="w-5 text-slate-400" />
-          </button>
+          <button onClick={() => signOut(auth)}><LogOut className="w-5 text-slate-400 hover:text-red-500" /></button>
         </div>
       </nav>
 
-      {/* Workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel: Content */}
-        <div className="w-full md:w-1/2 p-10 overflow-y-auto flex flex-col">
-          <div className="max-w-xl mx-auto w-full">
-            <div className="mb-8 flex items-center justify-between">
-              <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Ders {userStats.level} / 160</span>
-              <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-green-500" style={{ width: `${(userStats.level/160)*100}%` }}></div>
-              </div>
-            </div>
-
-            <h2 className="text-3xl font-black mb-6 leading-tight">{currentLesson.title}</h2>
+        <div className="w-full md:w-1/2 p-10 overflow-y-auto">
+          <div className="max-w-xl mx-auto">
+            <p className="text-xs font-black text-slate-300 uppercase mb-2">Ders {userStats.level} / 160</p>
+            <h2 className="text-3xl font-black mb-8">{lesson.title}</h2>
 
             {step === 1 ? (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100">
-                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6 text-green-500">
-                    <Info className="w-6" />
-                  </div>
-                  <p className="text-lg font-medium text-slate-700 leading-relaxed">
-                    {currentLesson.info}
-                  </p>
+                  <Info className="w-8 text-green-500 mb-4" />
+                  <p className="text-lg font-medium text-slate-700 leading-relaxed">{lesson.info}</p>
                 </div>
-                <button 
-                  onClick={() => setStep(2)}
-                  className="group flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition-all"
-                >
-                  Anladım, Uygulayalım <ArrowRight className="w-5 group-hover:translate-x-1 transition-transform" />
+                <button onClick={() => setStep(2)} className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition-all">
+                  Hadi Yapalım <ArrowRight className="w-5" />
                 </button>
               </div>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="bg-green-50 rounded-3xl p-8 border border-green-100">
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">?</div>
-                    <div>
-                      <h4 className="font-black text-green-900 mb-2">GÖREVİN:</h4>
-                      <p className="text-green-800 font-bold leading-relaxed">{currentLesson.task}</p>
-                    </div>
-                  </div>
+                  <h4 className="font-black text-green-900 mb-2 italic">GÖREV:</h4>
+                  <p className="text-green-800 font-bold leading-relaxed">{lesson.task}</p>
                 </div>
-
                 {terminalError && (
                   <div className="bg-red-50 rounded-2xl p-6 border border-red-100 flex gap-4">
                     <AlertCircle className="text-red-500 shrink-0" />
@@ -341,45 +311,35 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right Panel: Interactive Terminal */}
         <div className="hidden md:block w-1/2 bg-slate-50 p-10">
           {step === 2 ? (
-            <div className="h-full bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
-              <div className="h-12 border-b border-slate-100 flex items-center px-6 gap-2">
-                <div className="w-3 h-3 rounded-full bg-slate-200"></div>
-                <div className="w-3 h-3 rounded-full bg-slate-200"></div>
-                <div className="w-3 h-3 rounded-full bg-slate-200"></div>
-                <span className="ml-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Linguix Terminal Emulator</span>
+            <div className="h-full bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95">
+              <div className="h-10 border-b border-slate-100 flex items-center px-6 gap-2">
+                <div className="w-3 h-3 rounded-full bg-slate-100"></div>
+                <div className="w-3 h-3 rounded-full bg-slate-100"></div>
+                <div className="w-3 h-3 rounded-full bg-slate-100"></div>
               </div>
               <div className="flex-1 p-6 overflow-hidden">
                 <div ref={terminalRef} className="h-full" />
               </div>
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center border-2 border-dashed border-slate-200 rounded-[2.5rem]">
-              <div className="text-center space-y-4">
-                <TerminalIcon className="w-12 h-12 text-slate-200 mx-auto" />
-                <p className="text-sm font-bold text-slate-300 uppercase tracking-widest">Önce konuyu oku</p>
-              </div>
+            <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-300 font-bold uppercase tracking-widest text-xs gap-4">
+              <TerminalIcon className="w-10" />
+              Terminal Hazır Bekliyor
             </div>
           )}
         </div>
       </div>
 
-      {/* Success Modal */}
       {showWin && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-[3rem] p-12 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-300">
-            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 text-green-500">
-              <CheckCircle2 className="w-12 h-12" />
-            </div>
-            <h2 className="text-3xl font-black mb-2">HARİKA!</h2>
-            <p className="text-slate-400 font-bold mb-10">Dizini başarıyla tespit ettin. Linux ağacında ilk adımını attın.</p>
-            <button 
-              onClick={nextLesson}
-              className="w-full bg-green-500 text-white font-black py-5 rounded-2xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all active:scale-[0.98]"
-            >
-              SONRAKİ DERS
+          <div className="bg-white rounded-[3rem] p-12 max-w-sm w-full text-center shadow-2xl animate-in zoom-in">
+            <CheckCircle2 className="w-20 h-20 text-green-500 mx-auto mb-6" />
+            <h2 className="text-3xl font-black mb-2 uppercase italic">Harika!</h2>
+            <p className="text-slate-400 font-bold mb-8">Linux ağacında ilk dalını keşfettin!</p>
+            <button onClick={nextLesson} className="w-full bg-green-500 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-green-600 transition-all">
+              SIRADAKİ DERS <ChevronRight className="inline ml-1" />
             </button>
           </div>
         </div>
