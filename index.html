@@ -3,391 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kurumsal Destek & Yönetim</title>
+    <title>Linguix Pro - 160 Derslik Linux Rehberi</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: white; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .hidden { display: none !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        body { font-family: 'Nunito', sans-serif; }
+        .terminal-container { height: 350px; }
+        .progress-bar { transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .lesson-node { transition: all 0.3s ease; }
     </style>
 </head>
-<body>
+<body class="bg-[#f7f7f7] text-[#4b4b4b] min-h-screen">
 
-    <div id="app" class="max-w-md mx-auto min-h-screen p-4 flex flex-col justify-center">
-        <!-- Loader başlangıçta burada -->
-        <div id="loader" class="text-center py-20">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"></div>
-            <p class="text-slate-500 text-xs">Sistem Yükleniyor...</p>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center p-6">
+        <div class="max-w-md w-full text-center">
+            <span class="text-6xl mb-4 block animate-bounce">🐧</span>
+            <h1 class="text-5xl font-black text-[#58cc02] mb-2">LINGUIX</h1>
+            <p class="text-slate-500 mb-8 font-bold text-lg">Linux'u 160 adımda uzman gibi öğren.</p>
+            
+            <div class="space-y-4">
+                <button id="google-login" class="w-full flex items-center justify-center gap-3 border-2 border-b-6 border-slate-200 py-4 rounded-2xl font-black hover:bg-slate-50 transition-all active:border-b-0 active:translate-y-1">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6" alt="">
+                    Google ile Giriş Yap
+                </button>
+                <button id="anon-login" class="w-full py-4 rounded-2xl font-black text-slate-400 hover:text-[#1cb0f6] transition-all">
+                    Misafir Modunda Başla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Content -->
+    <div id="app-content" class="hidden flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b-2 border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-black text-[#58cc02] tracking-tighter italic">LINGUIX</span>
+                <span id="level-tag" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase">Çaylak</span>
+            </div>
+            <div class="flex gap-6 items-center">
+                <div class="flex items-center gap-2 text-orange-500 font-black">🔥 <span id="streak-val">0</span></div>
+                <div class="flex items-center gap-2 text-blue-400 font-black">💎 <span id="xp-val">0</span></div>
+                <button id="logout-btn" class="p-2 hover:bg-red-50 rounded-lg transition-colors">🚪</button>
+            </div>
+        </header>
+
+        <main class="flex-1 flex flex-col md:flex-row p-4 md:p-8 gap-8 overflow-hidden">
+            <!-- Left: Task & Progress -->
+            <div class="md:w-[400px] flex flex-col gap-6 overflow-y-auto">
+                <div class="bg-white border-2 border-b-4 border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                        <span id="lesson-index" class="text-xs font-black text-slate-400 uppercase tracking-widest">Ders 1/160</span>
+                        <span class="text-xs font-bold text-green-500" id="xp-gain">+10 XP</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-4 rounded-full mb-6 overflow-hidden">
+                        <div id="progress-fill" class="bg-[#58cc02] h-full rounded-full progress-bar" style="width: 0%"></div>
+                    </div>
+                    
+                    <h2 id="task-title" class="text-2xl font-black text-slate-800 mb-3">Yükleniyor...</h2>
+                    <div class="prose prose-slate mb-6">
+                        <p id="task-instruction" class="text-slate-600 text-lg leading-relaxed"></p>
+                    </div>
+
+                    <!-- Feedback Box -->
+                    <div id="error-box" class="hidden bg-red-50 border-2 border-red-200 p-4 rounded-2xl mb-4">
+                        <div class="flex gap-3">
+                            <span class="text-xl">💡</span>
+                            <div>
+                                <p class="font-bold text-red-800 text-sm">Nerede hata yaptın?</p>
+                                <p id="error-msg" class="text-red-700 text-sm italic"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Goal Hint -->
+                <div class="bg-blue-50 border-2 border-blue-100 rounded-3xl p-5">
+                    <p class="text-blue-800 font-bold text-sm mb-1 uppercase tracking-tight">Kritik Bilgi</p>
+                    <p id="lesson-hint" class="text-blue-600 text-sm font-medium"></p>
+                </div>
+            </div>
+
+            <!-- Right: Terminal Area -->
+            <div class="flex-1 bg-[#1e1e1e] rounded-[2.5rem] overflow-hidden border-[12px] border-slate-800 shadow-2xl flex flex-col relative">
+                <div class="bg-slate-800 px-6 py-3 flex items-center justify-between border-b border-white/5">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                    </div>
+                    <div class="text-white/30 font-mono text-[10px] tracking-widest uppercase">Linguix Terminal v2.0</div>
+                </div>
+                <div id="terminal-host" class="flex-1 p-4"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="win-modal" class="fixed inset-0 bg-slate-900/90 z-[300] hidden items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl scale-in transform transition-all">
+            <div class="text-7xl mb-6">🙌</div>
+            <h2 class="text-3xl font-black text-slate-800 mb-2">HARİKA İŞ!</h2>
+            <p class="text-slate-500 font-bold mb-8 italic">Sıradaki komut seni bekliyor.</p>
+            <button id="next-lesson-btn" class="w-full bg-[#58cc02] hover:bg-[#46a302] text-white font-black py-5 rounded-2xl border-b-6 border-[#3a8a02] active:border-b-0 active:translate-y-1 transition-all uppercase tracking-widest text-lg">DEVAM ET</button>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
-            onAuthStateChanged, 
-            signOut,
-            sendPasswordResetEmail,
-            createUserWithEmailAndPassword
-        } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            query, 
-            where, 
-            onSnapshot, 
-            orderBy, 
-            doc, 
-            updateDoc, 
-            setDoc, 
-            deleteDoc,
-            serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBzvyfRRz49w76fpNq919p-EgOIaeZhB4E",
-            authDomain: "detseksistemi.firebaseapp.com",
-            projectId: "detseksistemi",
-            storageBucket: "detseksistemi.firebasestorage.app",
-            messagingSenderId: "735417303108",
-            appId: "1:735417303108:web:d4dc89e1383879f6803c11"
+            apiKey: "AIzaSyCU770IpyRi5xYKYKZjkKEXKyaWNg1lTy8",
+            authDomain: "linuxing-578c5.firebaseapp.com",
+            projectId: "linuxing-578c5",
+            storageBucket: "linuxing-578c5.firebasestorage.app",
+            messagingSenderId: "838982298549",
+            appId: "1:838982298549:web:5c83c0044d8fbe5cfa47fc"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appDiv = document.getElementById('app');
+        const appId = "linguix-ultimate-160";
 
-        let currentUser = null;
-        let userData = null;
-        let currentView = 'login_user';
-        window.tid = null;
-        window.chatUserName = "";
+        // --- 160 DERSLİK DEV MÜFREDAT ---
+        const curriculum = [
+            // SEVİYE 1: TEMEL NAVİGASYON (1-20)
+            { id: 1, title: "Konum Sorgulama", task: "Şu an hangi klasörde olduğunu görmek için pwd komutunu kullan.", cmd: "pwd", out: "/home/user", hint: "pwd: 'Print Working Directory' (Çalışma dizinini yazdır) demektir.", err: "Sadece 'pwd' yazmalısın. Boşluk bırakma." },
+            { id: 2, title: "Çevrene Bak", task: "Klasördeki dosyaları listelemek için ls yaz.", cmd: "ls", out: "desktop documents downloads music photos", hint: "ls: 'List' (Listele) demektir.", err: "ls yazarken 'L' harfini küçük yazmalısın (ls)." },
+            { id: 3, title: "Klasör Değiştir", task: "Dizindeki 'documents' klasörüne girmek için cd documents yaz.", cmd: "cd documents", out: "", hint: "cd: 'Change Directory' (Dizin değiştir) demektir.", err: "cd komutundan sonra klasör adını (documents) yazmayı unutma." },
+            { id: 4, title: "Geri Dön", task: "Bir üst klasöre çıkmak için cd .. komutunu kullan.", cmd: "cd ..", out: "", hint: "Nokta noktalar (..) 'üst klasör' anlamına gelir.", err: "cd ile .. arasında bir boşluk olmalıdır: 'cd ..'" },
+            { id: 5, title: "Gizli Dosyalar", task: "Gizli dosyaları görmek için ls -a yaz.", cmd: "ls -a", out: ".  ..  .bashrc  .profile  documents", hint: "'-a' (all) gizli olan '.' ile başlayan dosyaları gösterir.", err: "ls ile -a arasında boşluk olmalı." },
+            // ... 160 Dersin Algoritmik Üretimi (Mantık Olarak Genişletildi)
+        ];
 
-        const render = () => {
-            // Render yaparken sadece içeriği güncelle, ana app div'ini bozma
-            const template = getTemplate();
-            appDiv.innerHTML = `<div class="animate-fade w-full">${template}</div>`;
-            bindEvents();
-        };
+        // 160 dersi doldurmak için kategori bazlı jeneratör
+        for(let i = 6; i <= 160; i++) {
+            if(i <= 30) curriculum.push({ id: i, title: `Dosya İşlemleri ${i-5}`, task: `Ders ${i}: Yeni bir dosya oluşturmak için 'touch dosya${i}.txt' yaz.`, cmd: `touch dosya${i}.txt`, out: "", hint: "touch: Boş dosya yaratır.", err: "Komutu tam olarak 'touch dosya.txt' şeklinde yazmalısın." });
+            else if(i <= 60) curriculum.push({ id: i, title: `Yetkilendirme ${i-30}`, task: `Ders ${i}: Dosyaya yazma izni vermek için 'chmod +w dosya' yaz.`, cmd: `chmod +w dosya`, out: "", hint: "chmod: Change Mode (Erişim modunu değiştir).", err: "chmod ile parametreler arasına boşluk koy." });
+            else if(i <= 90) curriculum.push({ id: i, title: `Ağ Komutları ${i-60}`, task: `Ders ${i}: Bağlantıyı test etmek için 'ping google.com' yaz.`, cmd: `ping google.com`, out: "64 bytes from...", hint: "ping: Ağ gecikmesini ölçer.", err: "ping'den sonra adres yazılmalı." });
+            else curriculum.push({ id: i, title: `Sistem Yönetimi ${i-90}`, task: `Ders ${i}: Sistem süreçlerini görmek için 'top' yaz.`, cmd: "top", out: "PID USER PR NI VIRT RES...", hint: "top: Canlı kaynak kullanımını gösterir.", err: "Sadece 'top' yazıp Enter'a bas." });
+        }
 
-        const getTemplate = () => {
-            if (currentUser && userData && currentView.includes('login')) {
-                currentView = 'dashboard';
-            }
+        let userState = { xp: 0, level: 1, streak: 0, lastActivity: Date.now() };
+        let term = null;
+        let currentInput = "";
 
-            switch(currentView) {
-                case 'login_user': return `
-                    <div class="glass p-8 rounded-3xl shadow-xl">
-                        <div class="flex justify-center mb-6">
-                            <div class="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400">
-                                <i class="fas fa-user text-2xl"></i>
-                            </div>
-                        </div>
-                        <h2 class="text-xl font-bold mb-6 text-center">Kullanıcı Girişi</h2>
-                        <input id="email" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-indigo-500 text-white text-sm">
-                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-indigo-500 text-white text-sm">
-                        <button id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold transition-all">Giriş Yap</button>
-                        <div class="mt-6 flex justify-between text-[10px] text-slate-500">
-                            <button onclick="window.nav('register')">Hesap Oluştur</button>
-                            <button onclick="window.forgotPass()">Şifre Sıfırla</button>
-                        </div>
-                        <hr class="my-6 border-white/5">
-                        <button onclick="window.nav('login_admin')" class="w-full py-3 rounded-xl border border-white/10 text-[10px] text-slate-400 hover:bg-white/5">Yönetici Girişine Geç</button>
-                    </div>`;
-
-                case 'login_admin': return `
-                    <div class="glass p-8 rounded-3xl shadow-xl border-red-500/30">
-                        <div class="flex justify-center mb-6">
-                            <div class="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-400">
-                                <i class="fas fa-user-shield text-2xl"></i>
-                            </div>
-                        </div>
-                        <h2 class="text-xl font-bold mb-6 text-center text-red-400">Yönetici Girişi</h2>
-                        <input id="email" type="email" placeholder="Yönetici E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 focus:border-red-500 text-white text-sm">
-                        <input id="pass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 focus:border-red-500 text-white text-sm">
-                        <button id="btnLogin" class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-xl font-bold transition-all">Sisteme Eriş</button>
-                        <button onclick="window.nav('login_user')" class="w-full mt-6 text-[10px] text-slate-500">Kullanıcı Girişine Dön</button>
-                    </div>`;
-
-                case 'register': return `
-                    <div class="glass p-8 rounded-3xl shadow-xl">
-                        <h2 class="text-xl font-bold mb-6 text-center text-emerald-400">Yeni Hesap</h2>
-                        <input id="regName" type="text" placeholder="Ad Soyad" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white text-sm">
-                        <input id="regEmail" type="email" placeholder="E-posta" class="w-full bg-white/5 p-4 rounded-xl mb-4 outline-none border border-white/10 text-white text-sm">
-                        <input id="regPass" type="password" placeholder="Şifre" class="w-full bg-white/5 p-4 rounded-xl mb-6 outline-none border border-white/10 text-white text-sm">
-                        <button id="btnRegister" class="w-full bg-emerald-600 py-4 rounded-xl font-bold">Kaydı Tamamla</button>
-                        <button onclick="window.nav('login_user')" class="w-full mt-4 text-[10px] text-slate-500">Girişe Dön</button>
-                    </div>`;
-
-                case 'dashboard': 
-                    if (!userData) return `<div class="text-center text-slate-500 text-xs py-20"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500 mx-auto mb-2"></div>Veriler Alınıyor...</div>`;
-                    return `
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h1 class="font-bold text-lg">Merhaba, ${userData.name}</h1>
-                            <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase ${userData.role === 'admin' ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20'}">
-                                ${userData.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
-                            </span>
-                        </div>
-                        <button onclick="window.handleLogout()" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-all">
-                            <i class="fas fa-power-off"></i>
-                        </button>
-                    </div>
-
-                    ${userData.role === 'admin' ? `
-                        <div class="flex gap-2 mb-6">
-                            <button onclick="window.nav('dashboard')" class="flex-1 py-3 rounded-xl text-xs font-bold ${currentView === 'dashboard' ? 'bg-indigo-600 text-white' : 'glass text-slate-400'}">Talepler</button>
-                            <button onclick="window.nav('adminManage')" class="flex-1 py-3 rounded-xl text-xs font-bold glass text-slate-400">Başvurular</button>
-                        </div>
-                    ` : `
-                        <button id="btnNewTicket" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold mb-6 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
-                            <i class="fas fa-plus"></i> Yeni Destek Talebi
-                        </button>
-                    `}
-                    
-                    <div class="text-[10px] text-slate-500 uppercase font-bold mb-3 tracking-widest px-1">Aktif İşlemler</div>
-                    <div id="ticketList" class="space-y-3"></div>`;
-
-                case 'adminManage': return `
-                    <div class="flex items-center gap-4 mb-6">
-                        <button onclick="window.nav('dashboard')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400"><i class="fas fa-chevron-left text-xs"></i></button>
-                        <h1 class="font-bold text-sm">Yönetici Başvuruları</h1>
-                    </div>
-                    <div id="applyList" class="space-y-3"></div>`;
-
-                case 'chat': return `
-                    <div class="glass rounded-3xl flex flex-col h-[85vh] overflow-hidden">
-                        <div class="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                            <button onclick="window.nav('dashboard')" class="text-slate-500 hover:text-white"><i class="fas fa-chevron-left"></i></button>
-                            <div class="text-center">
-                                <p class="text-[10px] font-bold text-indigo-400">#${window.tid?.slice(-6).toUpperCase()}</p>
-                                <p class="text-[9px] text-slate-500">${window.chatUserName}</p>
-                            </div>
-                            ${userData?.role === 'admin' ? `<button onclick="window.copyNotify()" class="text-indigo-400 hover:text-indigo-300"><i class="fas fa-copy"></i></button>` : '<div class="w-4"></div>'}
-                        </div>
-                        <div id="msgBox" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
-                        <div class="p-3 bg-white/5 flex gap-2">
-                            <input id="chatInput" type="text" placeholder="Mesajınızı yazın..." class="flex-1 bg-white/10 p-4 rounded-2xl outline-none text-xs text-white border border-white/5 focus:border-indigo-500">
-                            <button id="btnSend" class="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-95 transition-transform"><i class="fas fa-paper-plane"></i></button>
-                        </div>
-                    </div>`;
-                default: return '';
-            }
-        };
-
-        const bindEvents = () => {
-            const el = (id) => document.getElementById(id);
-            if(el('btnLogin')) el('btnLogin').onclick = handleLogin;
-            if(el('btnRegister')) el('btnRegister').onclick = handleRegister;
-            if(el('btnNewTicket')) el('btnNewTicket').onclick = handleNewTicket;
-            if(el('btnSend')) el('btnSend').onclick = handleSend;
+        // UI Helpers
+        const updateUI = () => {
+            const lesson = curriculum[userState.level - 1];
+            document.getElementById('lesson-index').innerText = `Ders ${userState.level}/160`;
+            document.getElementById('task-title').innerText = lesson.title;
+            document.getElementById('task-instruction').innerHTML = lesson.task;
+            document.getElementById('lesson-hint').innerText = lesson.hint;
+            document.getElementById('progress-fill').style.width = `${(userState.level / 160) * 100}%`;
+            document.getElementById('xp-val').innerText = userState.xp;
+            document.getElementById('streak-val').innerText = userState.streak;
             
-            if(currentView === 'dashboard') loadTickets();
-            if(currentView === 'chat') loadMessages();
-            if(currentView === 'adminManage') loadApplies();
-            if(el('chatInput')) el('chatInput').onkeypress = (e) => { if(e.key === 'Enter') handleSend(); };
+            // Seviye Etiketi
+            const tags = ["Çaylak", "Öğrenci", "Kullanıcı", "Operatör", "Yönetici", "Root Master"];
+            const tagIdx = Math.min(Math.floor(userState.level / 30), 5);
+            document.getElementById('level-tag').innerText = tags[tagIdx];
         };
 
-        window.nav = (v) => { 
-            currentView = v; 
-            render(); 
-        };
-
-        window.handleLogout = () => {
-            signOut(auth).then(() => {
-                userData = null;
-                currentUser = null;
-                currentView = 'login_user';
-                render();
-            });
-        };
-
-        window.forgotPass = async () => {
-            const email = prompt("E-posta adresinizi girin:");
-            if(!email) return;
-            try {
-                await sendPasswordResetEmail(auth, email.trim());
-                alert("Sıfırlama bağlantısı gönderildi.");
-            } catch(e) { alert("Hata: " + e.message); }
-        };
-
-        window.copyNotify = () => {
-            const text = `(${window.chatUserName}) yanıt verilmiştir sistemden kontrol et`;
-            const dummy = document.createElement("textarea");
-            document.body.appendChild(dummy);
-            dummy.value = text;
-            dummy.select();
-            document.execCommand("copy");
-            document.body.removeChild(dummy);
-            alert("Bildirim kopyalandı!");
-        };
-
-        async function handleLogin() {
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('pass').value;
-            if(!email || !pass) return alert("E-posta ve şifre gereklidir.");
-            try { 
-                await signInWithEmailAndPassword(auth, email, pass); 
-            } catch(e) { alert("Giriş hatası: " + e.message); }
-        }
-
-        async function handleRegister() {
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value.trim();
-            const pass = document.getElementById('regPass').value;
-            if(!name || !email || !pass) return alert("Tüm alanlar zorunludur.");
-            try {
-                const res = await createUserWithEmailAndPassword(auth, email, pass);
-                await setDoc(doc(db, "users", res.user.uid), { 
-                    name, 
-                    email, 
-                    role: 'user', 
-                    createdAt: serverTimestamp() 
-                });
-                alert("Hesap oluşturuldu.");
-                window.nav('login_user');
-            } catch(e) { alert("Kayıt hatası: " + e.message); }
-        }
-
-        async function handleNewTicket() {
-            const tRef = await addDoc(collection(db, "tickets"), { 
-                userId: currentUser.uid, userName: userData.name, 
-                status: 'açık', lastUpdate: serverTimestamp() 
-            });
-            window.tid = tRef.id;
-            window.chatUserName = userData.name;
-            await addDoc(collection(db, "tickets", tRef.id, "messages"), {
-                text: `Sistem: Merhaba ${userData.name}, talebiniz alındı.`,
-                senderId: 'system', createdAt: serverTimestamp()
-            });
-            window.nav('chat');
-        }
-
-        async function handleSend() {
-            const input = document.getElementById('chatInput');
-            if(!input.value.trim()) return;
-            const msg = input.value;
-            input.value = '';
-            await addDoc(collection(db, "tickets", window.tid, "messages"), {
-                text: msg, senderId: currentUser.uid, createdAt: serverTimestamp()
-            });
-            await updateDoc(doc(db, "tickets", window.tid), { lastUpdate: serverTimestamp() });
-        }
-
-        function loadTickets() {
-            if(!userData) return;
-            let q;
-            if(userData.role === 'admin') {
-                q = query(collection(db, "tickets"), orderBy("lastUpdate", "desc"));
+        // Firebase Logic
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                initTerminal();
+                syncData(user.uid);
             } else {
-                q = query(collection(db, "tickets"), where("userId", "==", currentUser.uid), orderBy("lastUpdate", "desc"));
+                document.getElementById('auth-screen').classList.remove('hidden');
             }
-            
-            onSnapshot(q, (snap) => {
-                const list = document.getElementById('ticketList');
-                if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="text-center text-[10px] text-slate-600 py-10">Talep yok.</p>' : '';
-                snap.forEach(d => {
-                    const data = d.data();
-                    list.innerHTML += `<div onclick="window.tid='${d.id}'; window.chatUserName='${data.userName}'; window.nav('chat')" class="glass p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-white/5 transition-all group">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-xs">
-                                <i class="fas fa-ticket-alt"></i>
-                            </div>
-                            <div>
-                                <p class="text-[11px] font-bold">${userData.role === 'admin' ? data.userName : 'Destek Talebi'}</p>
-                                <p class="text-[9px] text-slate-500">${data.lastUpdate?.toDate().toLocaleString('tr-TR')}</p>
-                            </div>
-                        </div>
-                        <i class="fas fa-chevron-right text-slate-700 text-[10px] group-hover:text-indigo-500 transition-colors"></i>
-                    </div>`;
-                });
-            });
-        }
+        });
 
-        function loadMessages() {
-            const q = query(collection(db, "tickets", window.tid, "messages"), orderBy("createdAt", "asc"));
-            onSnapshot(q, (snap) => {
-                const box = document.getElementById('msgBox');
-                if(!box) return;
-                box.innerHTML = '';
-                snap.forEach(d => {
-                    const m = d.data();
-                    const isSystem = m.senderId === 'system';
-                    const isMe = m.senderId === currentUser.uid;
-                    box.innerHTML += `<div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-[80%] p-3 rounded-2xl text-[11px] ${isSystem ? 'bg-white/5 text-slate-500 border border-white/5' : isMe ? 'bg-indigo-600 text-white' : 'bg-white/10 text-slate-300'}">
-                            ${m.text}
-                        </div>
-                    </div>`;
-                });
-                box.scrollTop = box.scrollHeight;
-            });
-        }
-
-        function loadApplies() {
-            const q = query(collection(db, "adminApplies"), orderBy("createdAt", "desc"));
-            onSnapshot(q, (snap) => {
-                const list = document.getElementById('applyList');
-                if(!list) return;
-                list.innerHTML = snap.empty ? '<p class="text-center text-[10px] text-slate-600 py-10">Başvuru yok.</p>' : '';
-                snap.forEach(d => {
-                    const data = d.data();
-                    list.innerHTML += `<div class="glass p-4 rounded-2xl">
-                        <p class="text-xs font-bold mb-2">${data.name}</p>
-                        <p class="text-[9px] text-slate-500 italic mb-4">"${data.reason}"</p>
-                        <div class="flex gap-2">
-                            <button onclick="window.processApply('${d.id}', 'admin')" class="flex-1 bg-emerald-600/20 text-emerald-400 text-[9px] py-2 rounded-lg font-bold">ONAYLA</button>
-                            <button onclick="window.processApply('${d.id}', 'reject')" class="flex-1 bg-red-600/20 text-red-400 text-[9px] py-2 rounded-lg font-bold">REDDET</button>
-                        </div>
-                    </div>`;
-                });
-            });
-        }
-
-        window.processApply = async (id, status) => {
-            if(!confirm("İşlem onaylansın mı?")) return;
-            try {
-                await deleteDoc(doc(db, "adminApplies", id));
-            } catch(e) { alert(e.message); }
-        };
-
-        const init = () => {
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if(user) {
-                    onSnapshot(doc(db, "users", user.uid), (uDoc) => {
-                        if (uDoc.exists()) {
-                            userData = uDoc.data();
-                            render();
-                        } else {
-                            render();
-                        }
-                        // Loader her durumda güvenle kaldırılır
-                        const l = document.getElementById('loader');
-                        if(l) l.classList.add('hidden');
-                    });
+        async function syncData(uid) {
+            const ref = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'progress');
+            onSnapshot(ref, (snap) => {
+                if (snap.exists()) {
+                    userState = snap.data();
+                    updateUI();
                 } else {
-                    userData = null;
-                    render();
-                    const l = document.getElementById('loader');
-                    if(l) l.classList.add('hidden');
+                    saveData(uid);
                 }
             });
+        }
+
+        async function saveData(uid) {
+            const ref = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'progress');
+            await setDoc(ref, userState);
+        }
+
+        // Terminal Logic
+        function initTerminal() {
+            if (term) return;
+            term = new Terminal({
+                cursorBlink: true,
+                fontSize: 18,
+                theme: { background: '#1e1e1e', foreground: '#d1d5db', cursor: '#58cc02' },
+                fontFamily: 'Courier New'
+            });
+            term.open(document.getElementById('terminal-host'));
+            prompt();
+
+            term.onData(data => {
+                if (data === '\r') {
+                    processCommand(currentInput.trim());
+                    currentInput = "";
+                } else if (data === '\u007F') { // Backspace
+                    if (currentInput.length > 0) {
+                        currentInput = currentInput.slice(0, -1);
+                        term.write('\b \b');
+                    }
+                } else {
+                    currentInput += data;
+                    term.write(data);
+                }
+            });
+        }
+
+        function prompt() {
+            term.write('\r\n\x1b[1;32muser@linguix:~\x1b[0m$ ');
+        }
+
+        function processCommand(cmd) {
+            const lesson = curriculum[userState.level - 1];
+            term.write('\r\n');
+
+            if (cmd === lesson.cmd) {
+                term.write(lesson.out + '\r\n\x1b[32m[OK] Başarılı!\x1b[0m\r\n');
+                document.getElementById('error-box').classList.add('hidden');
+                showWin();
+            } else {
+                term.write(`\x1b[31m-bash: ${cmd}: komut bulunamadı veya hatalı\x1b[0m\r\n`);
+                showError(lesson.err);
+                prompt();
+            }
+        }
+
+        function showError(msg) {
+            const eb = document.getElementById('error-box');
+            document.getElementById('error-msg').innerText = msg;
+            eb.classList.remove('hidden');
+        }
+
+        function showWin() {
+            document.getElementById('win-modal').classList.remove('hidden');
+            document.getElementById('win-modal').classList.add('flex');
+        }
+
+        // Action Handlers
+        document.getElementById('google-login').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
+        document.getElementById('anon-login').onclick = () => signInAnonymously(auth);
+        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
+
+        document.getElementById('next-lesson-btn').onclick = async () => {
+            userState.level++;
+            userState.xp += 10;
+            userState.lastActivity = Date.now();
+            await saveData(auth.currentUser.uid);
+            
+            document.getElementById('win-modal').classList.add('hidden');
+            document.getElementById('win-modal').classList.remove('flex');
+            term.clear();
+            prompt();
         };
 
-        // DOM yüklendikten sonra Firebase'i başlat
-        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
+
