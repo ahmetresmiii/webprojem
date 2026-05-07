@@ -1,24 +1,24 @@
+```html
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DİKKAT: 8-E Poyraz Tehlikesi!</title>
+    <title>8-E POYRAZ TEHLİKESİ!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { cursor: pointer; user-select: none; background-color: #1a1a1a; overflow: hidden; }
-        .alert-shake { animation: shake 0.15s infinite; }
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            25% { transform: translate(-2px, -1px) rotate(-1deg); }
-            50% { transform: translate(-1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(1deg); }
+        body { cursor: pointer; user-select: none; background: #000; overflow: hidden; }
+        .danger-bg { animation: danger-pulse 0.4s infinite; }
+        @keyframes danger-pulse {
+            0% { background-color: #ff0000; }
+            50% { background-color: #7a0000; }
+            100% { background-color: #ff0000; }
         }
         #video-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98);
+            background: #000;
             z-index: 1000;
             flex-direction: column;
             align-items: center;
@@ -26,69 +26,68 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center font-sans" onclick="detonateWarning()">
+<body class="min-h-screen flex items-center justify-center font-sans" onclick="detonate()">
 
-    <!-- Ana Panel -->
-    <div class="bg-red-600 border-[12px] border-black p-10 max-w-lg text-center shadow-[25px_25px_0px_0px_rgba(255,255,0,1)]">
-        <h1 class="text-7xl font-black text-white mb-4 alert-shake uppercase">KAÇIN!</h1>
-        <div class="bg-black text-yellow-400 p-4 mb-6">
-            <p class="text-2xl font-bold">8-E SINIFINDAN POYRAZ TESPİT EDİLDİ</p>
-        </div>
-        <p class="text-white text-xl font-black mb-8 leading-tight">
-            5. SINIFLAR: POYRAZ'IN OSURUĞU YAKLAŞIYOR! GAZ MASKELERİNİZİ HAZIRLAYIN!
+    <div class="bg-yellow-400 border-[10px] border-black p-8 max-w-sm text-center shadow-[10px_10px_0px_#ff0000]">
+        <h1 class="text-6xl font-black text-black mb-2 italic">DİKKAT!</h1>
+        <p class="text-xl font-bold bg-black text-white p-2 mb-4">8-E POYRAZ GÖRÜLDÜ</p>
+        <p class="text-black font-black text-lg mb-6 leading-tight uppercase">
+            YENİ 5. SINIFLAR: <br> GAZ MASKESİ TAKIN!
         </p>
-        <p class="text-black font-black text-2xl animate-pulse bg-white inline-block px-4 py-2">TIKLA VE DİNLE!</p>
+        <div class="danger-bg text-white font-black py-4 border-4 border-black text-2xl uppercase">TIKLA VE DUY!</div>
     </div>
 
     <!-- Video Katmanı -->
-   <iframe width="315" height="560" 
-src="https://www.youtube.com/embed/RV1C5J6ZhY8" 
-frameborder="0" 
-allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-allowfullscreen></iframe>
-    <!-- Ateş Vidinli İmzası -->
-    <footer class="fixed bottom-4 text-white font-black text-xl tracking-tighter uppercase">
-        YAPIMCI: <span class="bg-yellow-400 text-black px-3 py-1">ATEŞ VİDİNLİ</span>
+    <div id="video-overlay">
+        <video id="poyraz-vid" class="w-full max-w-[315px] h-auto border-4 border-yellow-400 shadow-[0_0_50px_#ff0000]" playsinline preload="auto">
+            <source src="poyraz.mp4" type="video/mp4">
+            Video bulunamadı!
+        </video>
+        <button onclick="stopAll(event)" class="mt-8 bg-white text-black px-12 py-4 font-black text-2xl border-4 border-black active:bg-red-600 active:text-white">KAÇ!</button>
+    </div>
+
+    <footer class="fixed bottom-4 text-white font-black text-lg tracking-widest bg-red-600 px-6 py-1 border-2 border-white">
+        YAPIMCI: ATEŞ VİDİNLİ
     </footer>
 
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playFart() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
-            // Farklı osuruk sesleri için rastgele dalga tipleri ve frekanslar
-            const types = ['sawtooth', 'square', 'triangle'];
-            osc.type = types[Math.floor(Math.random() * types.length)];
-            
-            const baseFrequency = Math.random() * 60 + 40; 
-            osc.frequency.setValueAtTime(baseFrequency, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.6);
-
-            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            const waves = ['sawtooth', 'square'];
+            osc.type = waves[Math.floor(Math.random() * waves.length)];
+            const f = Math.random() * 90 + 30; 
+            osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(5, audioCtx.currentTime + 0.6);
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
             osc.stop(audioCtx.currentTime + 0.6);
         }
 
-        function detonateWarning() {
+        function detonate() {
             playFart();
-            document.getElementById('video-overlay').style.display = 'flex';
+            const overlay = document.getElementById('video-overlay');
+            const video = document.getElementById('poyraz-vid');
+            overlay.style.display = 'flex';
+            video.currentTime = 0;
+            video.play().catch(err => console.log("Otomatik oynatma engellendi"));
         }
 
-        function dismissVideo(e) {
+        function stopAll(e) {
             e.stopPropagation();
-            document.getElementById('video-overlay').style.display = 'none';
-            // Video durdurma işlemi
-            const iframe = document.getElementById('target-video');
-            const src = iframe.src;
-            iframe.src = "";
-            iframe.src = src;
+            const overlay = document.getElementById('video-overlay');
+            const video = document.getElementById('poyraz-vid');
+            video.pause();
+            overlay.style.display = 'none';
         }
     </script>
 </body>
 </html>
+
+```
