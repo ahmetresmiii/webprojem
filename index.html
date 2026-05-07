@@ -1,301 +1,107 @@
+```html
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Linguix | 160 Adımda Linux</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DİKKAT: Poyraz Yaklaşıyor!</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #0f172a;
-            color: #f1f5f9;
-            overflow: hidden;
-            touch-action: manipulation;
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
-        .glass-dark { 
-            background: rgba(15, 23, 42, 0.8); 
-            backdrop-filter: blur(20px); 
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .animate-shake {
+            animation: shake 0.5s infinite;
         }
-        .terminal-container {
-            background: #000;
-            border-radius: 1.5rem;
-            box-shadow: 0 0 40px rgba(34, 197, 94, 0.1);
+        body {
+            cursor: pointer;
+            overflow-x: hidden;
         }
-        .xterm-viewport { border-radius: 0 0 1.5rem 1.5rem; }
-        .xterm-main-slot { padding: 12px !important; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="bg-yellow-500 text-gray-900 font-bold min-h-screen flex flex-col items-center justify-center p-4 select-none" onclick="playFart()">
 
-    <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
-    <audio id="snd-error" src="https://assets.mixkit.co/active_storage/sfx/253/253-preview.mp3"></audio>
+    <!-- Uyarı Konteynırı -->
+    <div class="max-w-2xl w-full bg-red-600 border-8 border-black p-8 rounded-xl shadow-2xl text-center transform hover:scale-105 transition-transform">
+        <h1 class="text-5xl md:text-7xl text-white mb-6 animate-shake uppercase tracking-tighter">
+            ⚠️ ACİL UYARI ⚠️
+        </h1>
+        
+        <p class="text-2xl md:text-3xl text-yellow-300 mb-8 leading-tight">
+            Maltepe Ortaokulu'nun Yeni 5. Sınıf Öğrencileri!
+        </p>
 
-    <!-- Auth Katmanı -->
-    <div id="auth-layer" class="fixed inset-0 bg-slate-950 z-[999] flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-[3rem] p-10 text-center relative overflow-hidden">
-            <h1 class="text-4xl font-black italic mb-2 tracking-tighter text-white">LINGUIX<span class="text-green-500">.</span></h1>
-            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-8">160 BÖLÜMLÜK LİNUX USTALIĞI</p>
-            <div class="space-y-4 relative z-10">
-                <button id="btn-google" class="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-4 rounded-2xl font-black hover:bg-slate-100 transition-all">Google Girişi</button>
-                <button id="btn-anon" class="w-full py-4 text-slate-400 font-bold text-xs hover:text-green-500 uppercase tracking-widest">Misafir Girişi</button>
-            </div>
+        <div class="bg-black text-red-500 p-6 rounded-lg mb-8 border-4 border-yellow-400">
+            <p class="text-4xl md:text-5xl mb-4">DİKKAT!</p>
+            <p class="text-xl md:text-2xl text-white">
+                8-E sınıfındaki <span class="text-yellow-400 font-black">POYRAZ</span>'dan derhal uzaklaşın! 
+                Gaz maskesi olmadan yaklaşmak hayati tehlike arz eder!
+            </p>
         </div>
+
+        <p class="text-white text-lg animate-pulse">
+            (Ekranda herhangi bir yere tıkla ve felaketi duy!)
+        </p>
     </div>
 
-    <!-- Ana Uygulama -->
-    <div id="main-app" class="hidden h-screen flex flex-col">
-        <header class="h-20 glass-dark border-b border-white/5 px-6 md:px-10 flex items-center justify-between z-50">
-            <div class="flex flex-col">
-                <span class="text-2xl font-black italic tracking-tighter text-white">LINGUIX<span class="text-green-500">.</span></span>
-                <span id="unit-title" class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Ünite 1: İlk Adımlar</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-2 rounded-2xl font-black text-sm">
-                    <span id="xp-display">0</span> XP
-                </div>
-                <button id="btn-logout" class="text-slate-500 hover:text-red-400 font-bold text-xs uppercase">ÇIKIŞ</button>
-            </div>
-        </header>
-
-        <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            <!-- Sol Panel: İçerik -->
-            <div class="w-full lg:w-[45%] p-6 md:p-12 lg:p-16 overflow-y-auto bg-slate-900 border-r border-white/5">
-                <div class="max-w-xl mx-auto space-y-8">
-                    <div class="flex items-center gap-4">
-                        <span id="lesson-badge" class="px-4 py-1.5 rounded-xl bg-green-500 text-slate-950 text-xs font-black uppercase">DERS 1</span>
-                        <div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                            <div id="progress-bar" class="h-full bg-green-500 transition-all duration-700" style="width: 0.625%"></div>
-                        </div>
-                        <span class="text-slate-500 text-xs font-bold"><span id="level-counter">1</span>/160</span>
-                    </div>
-                    
-                    <h2 id="lesson-title" class="text-4xl font-black text-white leading-tight tracking-tighter"></h2>
-                    
-                    <div id="panel-info" class="space-y-8">
-                        <div class="p-8 rounded-[2.5rem] bg-slate-800/40 border border-white/10">
-                            <p id="lesson-text" class="text-xl font-semibold text-slate-200 leading-relaxed"></p>
-                        </div>
-                        <button id="btn-start" class="w-full bg-green-500 text-slate-950 px-8 py-6 rounded-[2rem] font-black text-xl hover:bg-green-400 transition-all">KOMUTU ÇALIŞTIR</button>
-                    </div>
-
-                    <div id="panel-task" class="hidden space-y-8">
-                        <div class="bg-gradient-to-br from-green-600 to-emerald-700 rounded-[2.5rem] p-10 text-slate-950 shadow-2xl">
-                            <p id="lesson-goal" class="text-2xl font-black"></p>
-                        </div>
-                        <div id="error-alert" class="hidden bg-red-500/10 border border-red-500/20 p-6 rounded-3xl text-red-400 font-bold">
-                            ⚠️ <span id="error-text"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sağ Panel: Terminal -->
-            <div class="w-full lg:w-[55%] p-6 md:p-12 flex flex-col justify-center bg-slate-950">
-                <div class="w-full h-full max-h-[600px] flex flex-col terminal-container overflow-hidden border border-white/5">
-                    <div class="h-10 bg-slate-900/80 flex items-center px-6 border-b border-white/5">
-                        <div class="flex gap-1.5 mr-4">
-                            <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/40"></div>
-                            <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/40"></div>
-                            <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/40"></div>
-                        </div>
-                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">LINUX_MASTER_CONSOLE_v3</span>
-                    </div>
-                    <div id="terminal" class="flex-1 bg-black"></div>
-                </div>
-            </div>
-        </div>
+    <!-- Kaçış Butonu (Aslında sadece şaka amaçlı) -->
+    <div class="mt-10">
+        <button class="bg-white text-red-600 px-8 py-4 rounded-full text-2xl border-4 border-black hover:bg-black hover:text-white transition-colors uppercase font-black">
+            KOŞARAK KAÇ! 🏃‍♂️💨
+        </button>
     </div>
 
-    <!-- Başarı Modalı -->
-    <div id="success-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[1000] hidden items-center justify-center p-6">
-        <div class="bg-slate-900 rounded-[4rem] p-12 max-w-sm w-full text-center border border-white/10 shadow-2xl">
-            <div class="w-20 h-20 bg-green-500/20 border border-green-500/40 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 text-3xl font-black">✓</div>
-            <h2 class="text-4xl font-black text-white mb-3 italic">HARİKA!</h2>
-            <p class="text-slate-400 font-bold mb-10 leading-relaxed">Sistem doğrulandı. Bir sonraki Linux sırrına hazırsın.</p>
-            <button id="btn-next" class="w-full bg-white text-slate-950 font-black py-6 rounded-[2rem] hover:bg-green-500 transition-all uppercase tracking-widest text-sm">DEVAM ET</button>
-        </div>
-    </div>
+    <!-- Yapımcı Bilgisi -->
+    <footer class="mt-auto py-6 text-black text-sm md:text-base">
+        Bu site <span class="underline decoration-2">Ateş Vidinli</span> tarafından insanlığı uyarmak için yapılmıştır.
+    </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Ses Efektleri İçin Script -->
+    <script>
+        function playFart() {
+            // Web Audio API kullanarak sentetik osuruk sesi üretimi veya rastgele frekanslı ses
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCU770IpyRi5xYKYKZjkKEXKyaWNg1lTy8",
-            authDomain: "linuxing-578c5.firebaseapp.com",
-            projectId: "linuxing-578c5",
-            storageBucket: "linuxing-578c5.firebasestorage.app",
-            messagingSenderId: "838982298549",
-            appId: "1:838982298549:web:5c83c0044d8fbe5cfa47fc"
-        };
+            oscillator.type = 'sawtooth';
+            // Rastgele kalın ses (80-150Hz arası)
+            const freq = Math.floor(Math.random() * 70) + 80;
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            // Sesin perdesini düşürerek osuruk efekti verme
+            oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.5);
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const APP_VERSION = "linguix-160-v1";
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
 
-        // 160 Derslik Dinamik Veri Yapısı (Ünitelere Göre)
-        const units = [
-            { id: 1, name: "İlk Adımlar", start: 1, end: 20 },
-            { id: 2, name: "Dosya Operasyonları", start: 21, end: 40 },
-            { id: 3, name: "Metin Düzenleme", start: 41, end: 60 },
-            { id: 4, name: "Akış ve Yönlendirme", start: 61, end: 80 },
-            { id: 5, name: "Yetki Yönetimi", start: 81, end: 100 },
-            { id: 6, name: "Sistem ve Süreçler", start: 101, end: 120 },
-            { id: 7, name: "Paket Yönetimi", start: 121, end: 140 },
-            { id: 8, name: "Ağ ve Scripting", start: 141, end: 160 }
-        ];
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
 
-        // Temel 160 ders örneği (AI tarafından genişletilecek çekirdek)
-        const lessonData = {
-            1: { title: "Sen Kimsin?", text: "Linux'ta her şey bir kullanıcıya aittir. Sistemdeki kimliğini 'whoami' ile öğren.", goal: "Kullanıcı adını öğrenmek için 'whoami' yaz.", cmd: "whoami", resp: "uzman" },
-            2: { title: "Neredeyim?", text: "Linux'ta klasörler arasında kaybolursan 'pwd' (Print Working Directory) nerede olduğunu söyler.", goal: "Hangi klasörde olduğunu görmek için 'pwd' yaz.", cmd: "pwd", resp: "/home/uzman/linguix" },
-            3: { title: "Dosyaları Gör", text: "Karanlık bir odada ışığı açmak gibi; 'ls' bulunduğun yerdeki tüm dosyaları listeler.", goal: "Dosyaları listelemek için 'ls' yaz.", cmd: "ls", resp: "belgeler/ notlar.txt projem/" },
-            4: { title: "Ekranı Temizle", text: "Terminal çok karıştığında 'clear' komutu tertemiz bir sayfa açar.", goal: "Ekranı temizlemek için 'clear' yaz.", cmd: "clear", resp: "" },
-            5: { title: "Klasör Oluştur", text: "Yeni bir proje için klasör lazım. 'mkdir' (Make Directory) bu işe yarar.", goal: "Yeni klasör için 'mkdir ders5' yaz.", cmd: "mkdir ders5", resp: "Klasör oluşturuldu." },
-            // ... Bu yapı 160'a kadar devam edecek
-            21: { title: "Kopyala", text: "Bir dosyayı başka yere kopyalamak için 'cp' (copy) kullanılır.", goal: "Kopyalama için 'cp notlar.txt yedek.txt' yaz.", cmd: "cp notlar.txt yedek.txt", resp: "Kopyalandı." },
-            41: { title: "Nano Düzenleyici", text: "Nano, terminal içindeki en basit metin düzenleyicidir.", goal: "Düzenlemek için 'nano dosya.txt' yaz.", cmd: "nano dosya.txt", resp: "[Metin Düzenleme Modu]" },
-            81: { title: "Süper Güçler", text: "Sudo, 'SuperUser Do' anlamına gelir. Yönetici yetkisi verir.", goal: "Root yetkisi için 'sudo su' yaz.", cmd: "sudo su", resp: "Root yetkisi tanımlandı." }
-        };
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
 
-        let state = { xp: 0, level: 1 };
-        let xterm, inputBuffer = "";
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                document.getElementById('auth-layer').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                await loadUserData(user.uid);
-                setupTerminal();
-            }
-        });
-
-        async function loadUserData(uid) {
-            const docRef = doc(db, 'artifacts', APP_VERSION, 'users', uid, 'profile', 'progress');
-            const snap = await getDoc(docRef);
-            if (snap.exists()) state = snap.data();
-            else await setDoc(docRef, state);
-            renderUI();
+            // Görsel efekt: Arkaplan rengini anlık değiştir
+            document.body.style.backgroundColor = '#4a3701'; // Kahverengi
+            setTimeout(() => {
+                document.body.style.backgroundColor = '';
+            }, 100);
         }
 
-        function renderUI() {
-            const currentLessonId = state.level;
-            // Eğer ders datası yoksa jenerik oluştur (AI listesi için hazırlık)
-            const current = lessonData[currentLessonId] || { 
-                title: `Bölüm ${currentLessonId}`, 
-                text: "Bu seviye için ders içeriği hazırlanıyor...", 
-                goal: "Bu aşamayı geçmek için 'devam' yaz.", 
-                cmd: "devam", 
-                resp: "Sıradaki seviye açılıyor..." 
-            };
-
-            const currentUnit = units.find(u => currentLessonId >= u.start && currentLessonId <= u.end);
-            
-            document.getElementById('unit-title').innerText = `Ünite ${currentUnit?.id || 1}: ${currentUnit?.name || 'Linux'}`;
-            document.getElementById('lesson-badge').innerText = `DERS ${currentLessonId}`;
-            document.getElementById('level-counter').innerText = currentLessonId;
-            document.getElementById('lesson-title').innerText = current.title;
-            document.getElementById('lesson-text').innerText = current.text;
-            document.getElementById('lesson-goal').innerText = current.goal;
-            document.getElementById('xp-display').innerText = state.xp;
-            
-            const progress = (currentLessonId / 160) * 100;
-            document.getElementById('progress-bar').style.width = `${progress}%`;
-            
-            document.getElementById('panel-info').classList.remove('hidden');
-            document.getElementById('panel-task').classList.add('hidden');
-            document.getElementById('error-alert').classList.add('hidden');
-        }
-
-        function setupTerminal() {
-            if (xterm) return;
-            xterm = new Terminal({
-                cursorBlink: true,
-                fontSize: 18,
-                theme: { background: '#000000', foreground: '#22c55e', cursor: '#22c55e' },
-                fontFamily: '"Plus Jakarta Sans", monospace'
-            });
-            xterm.open(document.getElementById('terminal'));
-            
-            xterm.onData(data => {
-                const charCode = data.charCodeAt(0);
-                if (charCode === 13 || charCode === 10) {
-                    handleCmd(inputBuffer.trim());
-                    inputBuffer = "";
-                } else if (data === '\u007F') {
-                    if (inputBuffer.length > 0) {
-                        inputBuffer = inputBuffer.slice(0, -1);
-                        xterm.write('\b \b');
-                    }
-                } else {
-                    inputBuffer += data;
-                    xterm.write(data);
-                }
-            });
-            prompt();
-        }
-
-        function prompt() { 
-            if (xterm) xterm.write('\r\n\x1b[32m➜\x1b[0m \x1b[36m~/linguix\x1b[0m $ '); 
-        }
-
-        function handleCmd(raw) {
-            const current = lessonData[state.level] || { cmd: "devam", resp: "İlerliyoruz..." };
-            xterm.write('\r\n');
-            
-            if (!raw) { prompt(); return; }
-
-            if (raw.toLowerCase() === current.cmd.toLowerCase()) {
-                document.getElementById('snd-success').play().catch(()=>{});
-                if(current.cmd === "clear") xterm.clear();
-                else xterm.writeln(current.resp);
-                
-                setTimeout(() => {
-                    document.getElementById('success-modal').style.display = 'flex';
-                }, 400);
-            } else {
-                document.getElementById('snd-error').play().catch(()=>{});
-                xterm.writeln(`\x1b[31m[-] Hata: '${raw}' komutu beklenmiyordu.\x1b[0m`);
-                document.getElementById('error-text').innerText = `Denemen gereken komut: '${current.cmd}'`;
-                document.getElementById('error-alert').classList.remove('hidden');
-                prompt();
-            }
-        }
-
-        document.getElementById('btn-start').onclick = () => {
-            document.getElementById('panel-info').classList.add('hidden');
-            document.getElementById('panel-task').classList.remove('hidden');
-            if (xterm) setTimeout(() => xterm.focus(), 200);
-        };
-
-        document.getElementById('btn-next').onclick = async () => {
-            if(state.level < 160) {
-                state.level++;
-                state.xp += 100;
-                await setDoc(doc(db, 'artifacts', APP_VERSION, 'users', auth.currentUser.uid, 'profile', 'progress'), state);
-            }
-            document.getElementById('success-modal').style.display = 'none';
-            renderUI();
-            if (xterm) { xterm.clear(); prompt(); xterm.focus(); }
-        };
-
-        document.getElementById('btn-google').onclick = async () => {
-            const provider = new GoogleAuthProvider();
-            try { await signInWithPopup(auth, provider); } catch (e) { await signInWithRedirect(auth, provider); }
-        };
-
-        document.getElementById('btn-anon').onclick = () => signInAnonymously(auth);
-        document.getElementById('btn-logout').onclick = () => signOut(auth);
+        // İlk etkileşim uyarısı (Bazı tarayıcılar için)
+        console.log("Poyraz uyarısı aktif! Sesi duymak için sayfaya tıkla.");
     </script>
 </body>
 </html>
+
+```
