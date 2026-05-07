@@ -4,17 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>8-E POYRAZ TEHLİKESİ!</title>
+    <title>8-E POYRAZ ALARMI!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { cursor: pointer; user-select: none; background: #000; overflow: hidden; }
-        .danger-bg { animation: danger-pulse 0.4s infinite; }
-        @keyframes danger-pulse {
-            0% { background-color: #ff0000; }
-            50% { background-color: #7a0000; }
-            100% { background-color: #ff0000; }
-        }
-        #video-overlay {
+        .danger-pulse { animation: pulse 0.3s infinite; }
+        @keyframes pulse { 0% { background: #f00; } 50% { background: #400; } 100% { background: #f00; } }
+        #overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -26,27 +22,25 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center font-sans" onclick="detonate()">
+<body class="min-h-screen flex items-center justify-center font-sans" onclick="runWarning()">
 
-    <div class="bg-yellow-400 border-[10px] border-black p-8 max-w-sm text-center shadow-[10px_10px_0px_#ff0000]">
-        <h1 class="text-6xl font-black text-black mb-2 italic">DİKKAT!</h1>
+    <div class="bg-yellow-400 border-[10px] border-black p-8 max-w-sm text-center shadow-[10px_10px_0px_#f00]">
+        <h1 class="text-6xl font-black mb-2 italic">DİKKAT!</h1>
         <p class="text-xl font-bold bg-black text-white p-2 mb-4">8-E POYRAZ GÖRÜLDÜ</p>
-        <p class="text-black font-black text-lg mb-6 leading-tight uppercase">
+        <p class="text-black font-black text-lg mb-6 uppercase">
             YENİ 5. SINIFLAR: <br> GAZ MASKESİ TAKIN!
         </p>
-        <div class="danger-bg text-white font-black py-4 border-4 border-black text-2xl uppercase">TIKLA VE DUY!</div>
+        <div class="danger-pulse text-white font-black py-4 border-4 border-black text-2xl uppercase">TIKLA VE DUY!</div>
     </div>
 
-    <!-- Video Katmanı -->
-    <div id="video-overlay">
-        <video id="poyraz-vid" class="w-full max-w-[315px] h-auto border-4 border-yellow-400 shadow-[0_0_50px_#ff0000]" playsinline preload="auto">
+    <div id="overlay">
+        <video id="vid" class="w-full max-w-[315px] h-auto border-4 border-yellow-400" playsinline preload="auto">
             <source src="poyraz.mp4" type="video/mp4">
-            Video bulunamadı!
         </video>
-        <button onclick="stopAll(event)" class="mt-8 bg-white text-black px-12 py-4 font-black text-2xl border-4 border-black active:bg-red-600 active:text-white">KAÇ!</button>
+        <button onclick="stopAll(event)" class="mt-8 bg-white text-black px-12 py-4 font-black text-2xl border-4 border-black active:bg-red-600">KAÇ!</button>
     </div>
 
-    <footer class="fixed bottom-4 text-white font-black text-lg tracking-widest bg-red-600 px-6 py-1 border-2 border-white">
+    <footer class="fixed bottom-4 text-white font-black text-lg bg-red-600 px-6 py-1 border-2 border-white uppercase">
         YAPIMCI: ATEŞ VİDİNLİ
     </footer>
 
@@ -57,34 +51,34 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            const waves = ['sawtooth', 'square'];
-            osc.type = waves[Math.floor(Math.random() * waves.length)];
-            const f = Math.random() * 90 + 30; 
+            osc.type = ['sawtooth', 'square'][Math.floor(Math.random() * 2)];
+            const f = Math.random() * 100 + 40;
             osc.frequency.setValueAtTime(f, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(5, audioCtx.currentTime + 0.6);
+            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.5);
             gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.6);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
         }
 
-        function detonate() {
+        function runWarning() {
             playFart();
-            const overlay = document.getElementById('video-overlay');
-            const video = document.getElementById('poyraz-vid');
-            overlay.style.display = 'flex';
-            video.currentTime = 0;
-            video.play().catch(err => console.log("Otomatik oynatma engellendi"));
+            const v = document.getElementById('vid');
+            document.getElementById('overlay').style.display = 'flex';
+            v.currentTime = 0;
+            const playPromise = v.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    console.log("Oynatma hatası: poyraz.mp4 dosyası eksik veya format hatalı.");
+                });
+            }
         }
 
         function stopAll(e) {
             e.stopPropagation();
-            const overlay = document.getElementById('video-overlay');
-            const video = document.getElementById('poyraz-vid');
-            video.pause();
-            overlay.style.display = 'none';
+            const v = document.getElementById('vid');
+            v.pause();
+            document.getElementById('overlay').style.display = 'none';
         }
     </script>
 </body>
