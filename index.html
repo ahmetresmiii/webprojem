@@ -1,107 +1,98 @@
-```html
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DİKKAT: Poyraz Yaklaşıyor!</title>
+    <title>DİKKAT: 8-E Poyraz Tehlikesi!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body { cursor: pointer; user-select: none; background-color: #1a1a1a; overflow: hidden; }
+        .alert-shake { animation: shake 0.15s infinite; }
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
+            25% { transform: translate(-2px, -1px) rotate(-1deg); }
+            50% { transform: translate(-1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(1deg); }
         }
-        .animate-shake {
-            animation: shake 0.5s infinite;
-        }
-        body {
-            cursor: pointer;
-            overflow-x: hidden;
+        #video-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
-<body class="bg-yellow-500 text-gray-900 font-bold min-h-screen flex flex-col items-center justify-center p-4 select-none" onclick="playFart()">
+<body class="min-h-screen flex items-center justify-center font-sans" onclick="detonateWarning()">
 
-    <!-- Uyarı Konteynırı -->
-    <div class="max-w-2xl w-full bg-red-600 border-8 border-black p-8 rounded-xl shadow-2xl text-center transform hover:scale-105 transition-transform">
-        <h1 class="text-5xl md:text-7xl text-white mb-6 animate-shake uppercase tracking-tighter">
-            ⚠️ ACİL UYARI ⚠️
-        </h1>
-        
-        <p class="text-2xl md:text-3xl text-yellow-300 mb-8 leading-tight">
-            Maltepe Ortaokulu'nun Yeni 5. Sınıf Öğrencileri!
-        </p>
-
-        <div class="bg-black text-red-500 p-6 rounded-lg mb-8 border-4 border-yellow-400">
-            <p class="text-4xl md:text-5xl mb-4">DİKKAT!</p>
-            <p class="text-xl md:text-2xl text-white">
-                8-E sınıfındaki <span class="text-yellow-400 font-black">POYRAZ</span>'dan derhal uzaklaşın! 
-                Gaz maskesi olmadan yaklaşmak hayati tehlike arz eder!
-            </p>
+    <!-- Ana Panel -->
+    <div class="bg-red-600 border-[12px] border-black p-10 max-w-lg text-center shadow-[25px_25px_0px_0px_rgba(255,255,0,1)]">
+        <h1 class="text-7xl font-black text-white mb-4 alert-shake uppercase">KAÇIN!</h1>
+        <div class="bg-black text-yellow-400 p-4 mb-6">
+            <p class="text-2xl font-bold">8-E SINIFINDAN POYRAZ TESPİT EDİLDİ</p>
         </div>
-
-        <p class="text-white text-lg animate-pulse">
-            (Ekranda herhangi bir yere tıkla ve felaketi duy!)
+        <p class="text-white text-xl font-black mb-8 leading-tight">
+            5. SINIFLAR: POYRAZ'IN OSURUĞU YAKLAŞIYOR! GAZ MASKELERİNİZİ HAZIRLAYIN!
         </p>
+        <p class="text-black font-black text-2xl animate-pulse bg-white inline-block px-4 py-2">TIKLA VE DİNLE!</p>
     </div>
 
-    <!-- Kaçış Butonu (Aslında sadece şaka amaçlı) -->
-    <div class="mt-10">
-        <button class="bg-white text-red-600 px-8 py-4 rounded-full text-2xl border-4 border-black hover:bg-black hover:text-white transition-colors uppercase font-black">
-            KOŞARAK KAÇ! 🏃‍♂️💨
+    <!-- Video Katmanı -->
+    <div id="video-overlay">
+        <div class="w-full max-w-[560px] aspect-video bg-black border-4 border-white">
+            <!-- Talep Edilen Iframe Kodu -->
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/b-nqW1eaOfU?si=mt9ux66VYJx3WtuU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <button onclick="dismissVideo(event)" class="mt-8 bg-red-600 text-white px-12 py-4 font-black text-2xl border-4 border-black hover:bg-yellow-400 hover:text-black transition-colors uppercase">
+            Tehlikeden Uzaklaş!
         </button>
     </div>
 
-    <!-- Yapımcı Bilgisi -->
-    <footer class="mt-auto py-6 text-black text-sm md:text-base">
-        Bu site <span class="underline decoration-2">Ateş Vidinli</span> tarafından insanlığı uyarmak için yapılmıştır.
+    <!-- Ateş Vidinli İmzası -->
+    <footer class="fixed bottom-4 text-white font-black text-xl tracking-tighter uppercase">
+        YAPIMCI: <span class="bg-yellow-400 text-black px-3 py-1">ATEŞ VİDİNLİ</span>
     </footer>
 
-    <!-- Ses Efektleri İçin Script -->
     <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
         function playFart() {
-            // Web Audio API kullanarak sentetik osuruk sesi üretimi veya rastgele frekanslı ses
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            oscillator.type = 'sawtooth';
-            // Rastgele kalın ses (80-150Hz arası)
-            const freq = Math.floor(Math.random() * 70) + 80;
-            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
             
-            // Sesin perdesini düşürerek osuruk efekti verme
-            oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.5);
+            // Farklı osuruk sesleri için rastgele dalga tipleri ve frekanslar
+            const types = ['sawtooth', 'square', 'triangle'];
+            osc.type = types[Math.floor(Math.random() * types.length)];
+            
+            const baseFrequency = Math.random() * 60 + 40; 
+            osc.frequency.setValueAtTime(baseFrequency, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.6);
 
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.5);
-
-            // Görsel efekt: Arkaplan rengini anlık değiştir
-            document.body.style.backgroundColor = '#4a3701'; // Kahverengi
-            setTimeout(() => {
-                document.body.style.backgroundColor = '';
-            }, 100);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
         }
 
-        // İlk etkileşim uyarısı (Bazı tarayıcılar için)
-        console.log("Poyraz uyarısı aktif! Sesi duymak için sayfaya tıkla.");
+        function detonateWarning() {
+            playFart();
+            document.getElementById('video-overlay').style.display = 'flex';
+        }
+
+        function dismissVideo(e) {
+            e.stopPropagation();
+            document.getElementById('video-overlay').style.display = 'none';
+            // Video durdurma işlemi
+            const iframe = document.getElementById('target-video');
+            const src = iframe.src;
+            iframe.src = "";
+            iframe.src = src;
+        }
     </script>
 </body>
 </html>
-
-```
